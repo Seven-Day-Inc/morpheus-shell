@@ -662,6 +662,28 @@ describe('Electron runtime package contract', () => {
     expect(releaseWindowsRunStep.run).toContain(
       'pnpm run --if-present test:e2e:windows-fresh-startup-golden'
     )
+    const releaseLinuxRunStep = releaseGoldenJob.steps.find(
+      (step) => step.name === 'Run terminal rendering golden on Linux'
+    )
+    const releaseMacRunStep = releaseGoldenJob.steps.find(
+      (step) => step.name === 'Run terminal rendering golden on macOS'
+    )
+    expect(releaseLinuxRunStep.run).toContain(
+      'pnpm run --if-present test:e2e:posix-profile-index-golden'
+    )
+    expect(releaseMacRunStep.run).toContain(
+      'pnpm run --if-present test:e2e:posix-profile-index-golden'
+    )
+    const releaseWindowsRunStep = releaseGoldenJob.steps.find(
+      (step) => step.name === 'Run fresh-startup golden on Windows'
+    )
+    expect(releaseWindowsRunStep).toMatchObject({
+      if: "runner.os == 'Windows'",
+      shell: 'pwsh'
+    })
+    expect(releaseWindowsRunStep.run).toContain(
+      'pnpm run --if-present test:e2e:windows-fresh-startup-golden'
+    )
     expect(releaseEvidenceJob['continue-on-error']).toBe(true)
     expect(
       releaseEvidenceJob.strategy.matrix.include.map(({ platform }) => platform).sort()
