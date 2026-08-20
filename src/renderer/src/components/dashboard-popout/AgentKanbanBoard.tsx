@@ -8,11 +8,11 @@ import {
   type DashboardSnapshot,
   type DashboardSpawnAgentArgs
 } from '../../../../shared/dashboard-snapshot'
-import type { RepoIcon } from '../../../../shared/repo-icon'
 import { cn } from '@/lib/utils'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { installWindowVisibilityInterval } from '@/lib/window-visibility-interval'
-import { AgentKanbanCard } from './AgentKanbanCard'
+import { AgentBoardLane } from './AgentBoardLane'
+import { AgentBoardLiveSummary } from './AgentBoardLiveSummary'
 import { AgentDashboardToolbar } from './AgentDashboardToolbar'
 import { AgentTerminalDialog, type AgentRevealArgs } from './AgentTerminalDialog'
 import {
@@ -59,19 +59,6 @@ function sleepWorkspaceViaPopoutRelay(args: DashboardSleepWorkspaceArgs): void {
   void window.api.dashboard.sleepWorkspace?.(args)
 }
 
-function bucketLabel(bucket: DashboardBucket): string {
-  switch (bucket) {
-    case 'attention':
-      return translate('dashboardPopout.bucket.attention', 'Needs You')
-    case 'working':
-      return translate('dashboardPopout.bucket.working', 'Working')
-    case 'done':
-      return translate('dashboardPopout.bucket.done', 'Done')
-    case 'idle':
-      return translate('dashboardPopout.bucket.idle', 'Idle')
-  }
-}
-
 function groupByBucket(cards: DashboardCard[]): Record<DashboardBucket, DashboardCard[]> {
   const grouped: Record<DashboardBucket, DashboardCard[]> = {
     attention: [],
@@ -88,52 +75,6 @@ function groupByBucket(cards: DashboardCard[]): Record<DashboardBucket, Dashboar
     grouped[bucket].sort((a, b) => b.stateChangedAt - a.stateChangedAt)
   }
   return grouped
-}
-
-function KanbanColumn({
-  bucket,
-  cards,
-  repoIconsByRepoId,
-  now,
-  onOpenTerminal
-}: {
-  bucket: DashboardBucket
-  cards: DashboardCard[]
-  repoIconsByRepoId: Record<string, RepoIcon | null> | undefined
-  now: number
-  onOpenTerminal: (card: DashboardCard) => void
-}): React.JSX.Element {
-  return (
-    // Why: attention no longer tints the whole column — the cards inside carry
-    // their own state color, so a column border would double-signal it.
-    <section className="flex min-w-[264px] flex-1 flex-col rounded-xl border border-border/60 bg-muted/30">
-      <header className="flex items-center gap-2 px-3 py-2">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-          {bucketLabel(bucket)}
-        </span>
-        <span className="ml-auto rounded-full bg-background px-1.5 text-[11px] tabular-nums text-muted-foreground">
-          {cards.length}
-        </span>
-      </header>
-      <div className="scrollbar-sleek flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
-        {cards.length === 0 ? (
-          <p className="px-1 py-2 text-[11px] text-muted-foreground">
-            {translate('dashboardPopout.bucket.empty', 'None')}
-          </p>
-        ) : (
-          cards.map((card) => (
-            <AgentKanbanCard
-              key={card.paneKey}
-              card={card}
-              repoIcon={repoIconsByRepoId?.[card.repoId] ?? null}
-              now={now}
-              onOpenTerminal={onOpenTerminal}
-            />
-          ))
-        )}
-      </div>
-    </section>
-  )
 }
 
 type AgentKanbanBoardProps = {
@@ -304,15 +245,14 @@ export function AgentKanbanBoard({
       <div
         className={cn('relative flex flex-col bg-background text-foreground', containerClassName)}
       >
-        <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5">
+        <div
+          className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-card/70 px-4"
+          data-agent-dashboard-titlebar="true"
+        >
           <h1 className="text-[13px] font-semibold">
             {translate('dashboardPopout.title', 'Agents')}
           </h1>
-          <span className="text-[11px] text-muted-foreground">
-            {translate('dashboardPopout.total', '{{count}} total', {
-              count: availableCards.length
-            })}
-          </span>
+          <AgentBoardLiveSummary cards={availableCards} />
           <div
             className="flex items-center gap-0.5 rounded-md border border-border p-0.5"
             role="group"
@@ -394,7 +334,7 @@ export function AgentKanbanBoard({
               {/* Auto margins center the capped board and collapse during horizontal overflow. */}
               <div className="mx-auto flex w-full max-w-[1280px] gap-3">
                 {visibleBuckets.map((bucket) => (
-                  <KanbanColumn
+                  <AgentBoardLane
                     key={bucket}
                     bucket={bucket}
                     cards={grouped[bucket]}

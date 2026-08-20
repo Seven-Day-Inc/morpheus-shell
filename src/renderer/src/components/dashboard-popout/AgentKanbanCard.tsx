@@ -12,6 +12,7 @@ import { AgentIcon } from '@/lib/agent-catalog'
 import { agentTypeToIconAgent, formatAgentTypeLabel } from '@/lib/agent-status'
 import { AgentStateDot } from '@/components/AgentStateDot'
 import { RepoIconGlyph } from '@/components/repo/repo-icon'
+import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import {
@@ -20,6 +21,7 @@ import {
 } from '../../../../shared/dashboard-snapshot'
 import type { RepoIcon } from '../../../../shared/repo-icon'
 import { translate } from '@/i18n/i18n'
+import { AgentTaskArc } from './AgentTaskArc'
 
 /** Compact "started N ago" (the card is glanceable — coarse units are fine). */
 function formatStartedAgo(startedAt: number, now: number): string {
@@ -84,11 +86,14 @@ function sameCard(a: DashboardCard, b: DashboardCard): boolean {
     a.paneKey === b.paneKey &&
     a.ptyId === b.ptyId &&
     a.agentType === b.agentType &&
+    a.model === b.model &&
     a.bucket === b.bucket &&
     a.dotState === b.dotState &&
     a.task === b.task &&
     a.lastUserMessage === b.lastUserMessage &&
     a.lastAgentMessage === b.lastAgentMessage &&
+    a.toolName === b.toolName &&
+    a.toolInput === b.toolInput &&
     a.repoId === b.repoId &&
     a.worktreeId === b.worktreeId &&
     a.tabId === b.tabId &&
@@ -210,6 +215,7 @@ export const AgentKanbanCard = memo(
     // twice.
     const heading = card.conversationName ?? card.worktreeName
     const worktreeInFooter = card.conversationName !== undefined
+    const modelLabel = card.model ?? translate('dashboardPopout.card.model.unknown', 'Model —')
 
     return (
       <div
@@ -217,19 +223,23 @@ export const AgentKanbanCard = memo(
         // the card from its old column to its new one when its bucket changes.
         // paneKey has ':'/'/' which aren't valid in a custom-ident, so slugify.
         style={{ viewTransitionName: `agentcard-${card.paneKey.replace(/[^a-zA-Z0-9]/g, '-')}` }}
+        data-agent-task-card="true"
+        data-agent-task-state={card.bucket}
         className={cn(
-          'group flex w-full flex-col gap-1.5 rounded-lg border p-2.5 text-left transition-colors',
+          'group relative flex w-full flex-col gap-2 overflow-hidden rounded-xl border p-3 text-left shadow-xs transition-[border-color,background-color,box-shadow] before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:w-[3px]',
           needsYou
-            ? 'border-amber-500/40 bg-amber-500/[0.06] hover:border-amber-500/60 hover:bg-amber-500/10'
+            ? 'border-amber-500/40 bg-amber-500/[0.06] before:bg-amber-500/70 hover:border-amber-500/60 hover:bg-amber-500/10'
             : isDone
-              ? 'border-emerald-500/40 bg-emerald-500/[0.06] hover:border-emerald-500/60 hover:bg-emerald-500/10'
-              : 'border-border/60 bg-card hover:border-border hover:bg-accent/40'
+              ? 'border-emerald-500/35 bg-emerald-500/[0.05] before:bg-emerald-500/55 hover:border-emerald-500/55 hover:bg-emerald-500/[0.08]'
+              : card.bucket === 'working'
+                ? 'border-border bg-card before:bg-foreground/30 hover:border-foreground/25 hover:bg-accent/25'
+                : 'border-border/55 bg-card/70 before:bg-muted-foreground/20 hover:border-border hover:bg-accent/25'
         )}
       >
         <button
           type="button"
           onClick={() => onOpenTerminal(card)}
-          className="flex w-full flex-col gap-1.5 text-left focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          className="flex w-full flex-col gap-2 text-left focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
           <div className="flex w-full items-center gap-1.5">
             {/* Why: a bare <svg> flex item shrinks with the row. */}
@@ -244,31 +254,34 @@ export const AgentKanbanCard = memo(
             >
               {heading}
             </span>
-            {card.askSummary ? null : <AgentStateDot state={displayState} className="ml-auto" />}
+            <Badge
+              variant="secondary"
+              className="ml-auto h-4 max-w-[45%] shrink-0 truncate px-1.5 font-mono text-[9.5px] font-normal"
+              aria-label={translate('dashboardPopout.card.model.label', 'Model: {{model}}', {
+                model:
+                  card.model ?? translate('dashboardPopout.card.model.unreported', 'Not reported')
+              })}
+              title={card.model ?? undefined}
+            >
+              {modelLabel}
+            </Badge>
+            {card.askSummary ? null : <AgentStateDot state={displayState} />}
           </div>
 
-          {card.lastUserMessage || card.lastAgentMessage ? (
-            <div className="flex w-full flex-col gap-0.5">
-              {card.lastUserMessage ? (
-                <div className="line-clamp-1 text-[11px] leading-snug text-muted-foreground">
-                  <span className="font-medium text-foreground/45">
-                    {translate('dashboardPopout.card.you', 'You')}
-                  </span>{' '}
-                  {card.lastUserMessage}
-                </div>
-              ) : null}
-              {card.lastAgentMessage ? (
-                <div className="line-clamp-2 text-xs leading-snug text-foreground/90">
-                  <span className="font-medium text-foreground/45">
-                    {formatAgentTypeLabel(card.agentType)}
-                  </span>{' '}
-                  {card.lastAgentMessage}
-                </div>
-              ) : null}
-            </div>
-          ) : card.task ? (
+          {card.task ? (
             <div className="line-clamp-2 w-full text-xs leading-snug text-foreground/90">
               {card.task}
+            </div>
+          ) : null}
+
+          <AgentTaskArc card={card} />
+
+          {card.lastAgentMessage ? (
+            <div className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">
+              <span className="font-medium text-foreground/55">
+                {formatAgentTypeLabel(card.agentType)}
+              </span>{' '}
+              {card.lastAgentMessage}
             </div>
           ) : null}
 

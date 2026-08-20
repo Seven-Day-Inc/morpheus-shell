@@ -86,7 +86,7 @@ describe('AgentKanbanCard', () => {
     })
     const { container, rerender } = renderCard({ card: attentionCard, now: 2_000 })
 
-    expect(screen.queryByTestId('state-dot')).not.toBeInTheDocument()
+    expect(screen.getAllByTestId('state-dot')).toHaveLength(1)
     expect(container.querySelectorAll('.lucide-message-circle-question-mark')).toHaveLength(1)
 
     rerender(
@@ -98,7 +98,7 @@ describe('AgentKanbanCard', () => {
         />
       </TooltipProvider>
     )
-    expect(screen.getByTestId('state-dot')).toBeInTheDocument()
+    expect(screen.getAllByTestId('state-dot')).toHaveLength(2)
     expect(container.querySelector('.lucide-message-circle-question-mark')).toBeNull()
   })
 
@@ -171,7 +171,7 @@ describe('AgentKanbanCard', () => {
       card: card({ bucket: 'done', dotState: 'done', unseen: true }),
       now: 2_000
     })
-    expect(done.firstElementChild?.className).toContain('border-emerald-500/40')
+    expect(done.firstElementChild?.className).toContain('border-emerald-500/35')
 
     cleanup()
     const { container: idle } = renderCard({
@@ -179,7 +179,7 @@ describe('AgentKanbanCard', () => {
       now: 2_000
     })
     const idleClassName = idle.firstElementChild?.className ?? ''
-    expect(idleClassName).toContain('border-border/60')
+    expect(idleClassName).toContain('border-border/55')
     expect(idleClassName).not.toContain('emerald')
     expect(idleClassName).not.toContain('amber')
   })
@@ -196,8 +196,7 @@ describe('AgentKanbanCard', () => {
     expect(header).toHaveTextContent('Sparse-checkout parser')
     expect(header).not.toHaveTextContent('dashboard-review')
     expect(footer).toHaveTextContent('dashboard-review')
-    // The message line is attributed to the user again — the name moved up.
-    expect(screen.getByText('You')).toBeInTheDocument()
+    expect(cardElement.querySelector('[data-task-arc="true"]')).not.toBeNull()
   })
 
   it('heads the card with the worktree when no name resolves, without repeating it', () => {
@@ -218,6 +217,21 @@ describe('AgentKanbanCard', () => {
 
     expect(screen.getByLabelText('Orca')).toBeInTheDocument()
     expect(screen.getByText('🐳')).toBeInTheDocument()
+  })
+
+  it('shows model identity, the task arc, and live tool activity', () => {
+    renderCard({
+      card: card({
+        model: 'gpt-5.6-sol',
+        toolName: 'Edit',
+        toolInput: 'src/App.tsx'
+      }),
+      now: 2_000
+    })
+
+    expect(screen.getByLabelText('Model: gpt-5.6-sol')).toHaveTextContent('gpt-5.6-sol')
+    expect(screen.getByLabelText('Current stage: Execute')).toHaveTextContent('PlanExecuteVerify')
+    expect(screen.getByText('Edit · src/App.tsx')).toBeInTheDocument()
   })
 
   it('skips structured-clone rerenders until visible card data or its age changes', () => {

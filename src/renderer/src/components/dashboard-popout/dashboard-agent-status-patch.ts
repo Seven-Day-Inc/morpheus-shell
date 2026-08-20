@@ -53,10 +53,13 @@ export function patchDashboardSnapshotFromAgentStatus(
   const nextCard: DashboardCard = {
     ...card,
     ...(event.agentType ? { agentType: event.agentType } : {}),
+    ...(event.model ? { model: event.model } : {}),
     ...(event.prompt ? { task: event.prompt, lastUserMessage: event.prompt } : {}),
     ...(event.lastAssistantMessage !== undefined
       ? { lastAgentMessage: event.lastAssistantMessage || undefined }
       : {}),
+    ...(event.toolName !== undefined ? { toolName: event.toolName || undefined } : {}),
+    ...(event.toolInput !== undefined ? { toolInput: event.toolInput || undefined } : {}),
     ...(event.orchestration?.parentPaneKey
       ? { parentPaneKey: event.orchestration.parentPaneKey }
       : {}),

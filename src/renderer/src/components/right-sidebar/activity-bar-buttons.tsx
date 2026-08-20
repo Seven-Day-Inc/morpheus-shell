@@ -72,7 +72,7 @@ export function TopActivityOverflowMenu({
         <button
           type="button"
           className={cn(
-            'relative flex h-[36px] w-8 shrink-0 items-center justify-center text-muted-foreground/60 transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+            'relative flex h-[44px] w-8 shrink-0 items-center justify-center text-muted-foreground/60 transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
             RIGHT_SIDEBAR_HEADER_NO_DRAG_CLASS_NAME
           )}
           aria-label={
@@ -146,7 +146,7 @@ export function ActivityBarButton({
           className={cn(
             'relative flex shrink-0 items-center justify-center transition-colors',
             RIGHT_SIDEBAR_HEADER_NO_DRAG_CLASS_NAME,
-            isTop ? 'h-[36px] w-9' : 'w-10 h-10',
+            isTop ? 'h-[44px] w-9' : 'w-10 h-10',
             active ? 'text-foreground' : 'text-muted-foreground/60 hover:text-muted-foreground'
           )}
           onClick={onClick}
