@@ -86,6 +86,8 @@ export type DashboardCard = {
    *  no live pane (e.g. a retained/done row whose pane is gone). */
   ptyId: string | null
   agentType: AgentType
+  /** Provider-reported model. Optional so older snapshot publishers remain compatible. */
+  model?: string
   bucket: DashboardBucket
   dotState: DashboardCardDotState
   /** Additive discriminator; older pop-outs render this as ordinary working. */
@@ -96,6 +98,9 @@ export type DashboardCard = {
   lastUserMessage?: string
   /** The most recent message the agent sent back. */
   lastAgentMessage?: string
+  /** Current provider tool activity, when the hook exposes it. */
+  toolName?: string
+  toolInput?: string
   /** Routing target for click-to-focus. leafId is null when unresolved. */
   repoId: string
   worktreeId: string

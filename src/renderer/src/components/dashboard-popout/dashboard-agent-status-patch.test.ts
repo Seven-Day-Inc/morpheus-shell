@@ -46,7 +46,10 @@ function snapshot(cards: DashboardCard[] = [card()]): DashboardSnapshot {
 describe('patchDashboardSnapshotFromAgentStatus', () => {
   it('patches one known card without rebuilding the dashboard topology', () => {
     const original = snapshot([card(), card({ paneKey: 'tab-2:leaf-2' })])
-    const result = patchDashboardSnapshotFromAgentStatus(original, event())
+    const result = patchDashboardSnapshotFromAgentStatus(
+      original,
+      event({ model: 'gpt-5.6-sol', toolName: 'Edit', toolInput: 'src/App.tsx' })
+    )
 
     expect(result.matched).toBe(true)
     expect(result.snapshot.cards[0]).toMatchObject({
@@ -54,6 +57,9 @@ describe('patchDashboardSnapshotFromAgentStatus', () => {
       dotState: 'blocked',
       task: 'Need a decision',
       lastUserMessage: 'Need a decision',
+      model: 'gpt-5.6-sol',
+      toolName: 'Edit',
+      toolInput: 'src/App.tsx',
       askSummary: '{"question":"Continue?"}',
       stateChangedAt: 250,
       statusUpdatedAt: 300,

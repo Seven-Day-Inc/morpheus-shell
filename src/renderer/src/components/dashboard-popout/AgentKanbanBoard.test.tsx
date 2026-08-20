@@ -163,12 +163,22 @@ describe('AgentKanbanBoard', () => {
     expect(screen.getByText('3 total')).toBeTruthy()
   })
 
-  it('leaves every column border neutral now that cards carry the state color', () => {
+  it('lifts the attention lane while leaving the other lanes neutral', () => {
     renderBoard([card({ bucket: 'attention' })])
-    for (const column of document.querySelectorAll('section')) {
-      expect(column.className).toContain('border-border/60')
-      expect(column.className).not.toContain('amber')
-    }
+    const attention = document.querySelector('[data-agent-board-lane="attention"]')
+    const working = document.querySelector('[data-agent-board-lane="working"]')
+    expect(attention?.className).toContain('border-amber-500/25')
+    expect(working?.className).toContain('border-border/60')
+  })
+
+  it('folds completed work by default and expands it on demand', () => {
+    renderBoard([card({ bucket: 'done', dotState: 'done', worktreeName: 'finished' })])
+
+    const lane = document.querySelector('[data-agent-board-lane="done"]')
+    expect(lane).toHaveAttribute('data-lane-collapsed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Expand Done lane' }))
+    expect(lane).toHaveAttribute('data-lane-collapsed', 'false')
+    expect(screen.getByText('finished')).toBeVisible()
   })
 
   it('routes each card its own repo icon', () => {

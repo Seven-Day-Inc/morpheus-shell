@@ -180,7 +180,13 @@ describe('buildDashboardSnapshot', () => {
     const snapshot = buildDashboardSnapshot(
       baseState({
         agentStatusByPaneKey: {
-          [PANE_KEY]: entry({ state: 'working', lastAssistantMessage: 'Working on it now' })
+          [PANE_KEY]: entry({
+            state: 'working',
+            model: 'claude-sonnet-4-6',
+            toolName: 'Edit',
+            toolInput: 'src/App.tsx',
+            lastAssistantMessage: 'Working on it now'
+          })
         }
       }),
       NOW
@@ -195,6 +201,9 @@ describe('buildDashboardSnapshot', () => {
     expect(card.leafId).toBe(LEAF_ID)
     expect(card.lastUserMessage).toBe('do the thing')
     expect(card.lastAgentMessage).toBe('Working on it now')
+    expect(card.model).toBe('claude-sonnet-4-6')
+    expect(card.toolName).toBe('Edit')
+    expect(card.toolInput).toBe('src/App.tsx')
     // Column ordering key: when the agent entered its current state.
     expect(card.stateChangedAt).toBe(NOW - 5000)
     // No ack yet → unseen, mirroring the sidebar's unvisited signal.

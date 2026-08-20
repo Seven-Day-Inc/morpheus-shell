@@ -783,8 +783,8 @@ html.native-shell .app-layout {
 }
 
 .titlebar {
-  height: 36px;
-  min-height: 36px;
+  height: 44px;
+  min-height: 44px;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -797,11 +797,11 @@ html.native-shell .app-layout {
 /* Why: workspace view still needs a full titlebar-height strip above the
    sidebar so the native macOS traffic lights and sidebar chrome sit in the
    same vertical band they use in settings/landing. The center and right
-   workspace columns are offset separately to align with this 36px baseline
-   (4px drag strip + 32px tab row). */
+   workspace columns are offset separately to align with this 44px baseline
+   (6px drag strip + 38px tab row). */
 .titlebar-left {
-  height: 36px;
-  min-height: 36px;
+  height: 44px;
+  min-height: 44px;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -811,9 +811,9 @@ html.native-shell .app-layout {
      sidebar — match its surface so the left column reads as one panel. */
   background: var(--worktree-sidebar);
   /* Why: draw the divider via inset shadow instead of border-bottom so the
-     flex content area spans the full 36px. With border-bottom + border-box,
-     the content area shrinks to 35px and flex-centered controls land at
-     y=17.5, a half-pixel below the native traffic-light center at y=18
+     flex content area spans the full 44px. With border-bottom + border-box,
+     the content area shrinks to 43px and flex-centered controls land at
+     y=21.5, a half-pixel below the native traffic-light center at y=22
      (set via setWindowButtonPosition in createMainWindow.ts). The shadow
      paints the same 1px seam without stealing layout space, so the sidebar
      toggle, agent badge, and back/forward arrows align pixel-perfectly
@@ -835,7 +835,7 @@ html.native-shell .app-layout {
 }
 
 /* Why: small identity anchor on desktop custom titlebars where native window
-   chrome is hidden. Sized to sit comfortably in the 36px titlebar with a
+   chrome is hidden. Sized to sit comfortably in the 44px titlebar with a
    little horizontal breathing room. The SVG fill is white; light mode inverts
    it to black so it reads on the light titlebar background. */
 .titlebar-logo {
@@ -861,7 +861,7 @@ html.native-shell .app-layout {
   z-index: 9999;
   display: flex;
   flex-direction: row;
-  height: 36px;
+  height: 44px;
   -webkit-app-region: no-drag;
 }
 
@@ -870,7 +870,7 @@ html.native-shell .app-layout {
   align-items: center;
   justify-content: center;
   width: 46px;
-  height: 36px;
+  height: 44px;
   background: transparent;
   border: none;
   color: var(--muted-foreground);
@@ -931,7 +931,7 @@ html.native-shell .app-layout {
 }
 
 /* Why: in side-bar activity-bar mode the icon strip sits flush against the
-   right window edge. The fixed-position window-controls overlay (height 36px,
+   right window edge. The fixed-position window-controls overlay (height 44px,
    width 138px) covers the top-right corner when custom desktop chrome is
    active, so the topmost sidebar icons are unreachable without this offset. */
 .side-activity-bar-windows-inset {

@@ -16941,7 +16941,10 @@
       "working": "Working",
       "idle": "Idle",
       "empty": "None",
-      "done": "Done"
+      "done": "Done",
+      "expand": "Expand {{lane}} lane",
+      "collapse": "Collapse {{lane}} lane",
+      "collapsed": "Folded away"
     },
     "title": "Agents",
     "total": "{{count}} total",
@@ -16966,7 +16969,24 @@
         "closed": "Closed review"
       },
       "subagents_one": "{{count}} subagent",
-      "subagents_other": "{{count}} subagents"
+      "subagents_other": "{{count}} subagents",
+      "model": {
+        "unknown": "Model —",
+        "label": "Model: {{model}}",
+        "unreported": "Not reported"
+      },
+      "phase": {
+        "plan": "Plan",
+        "execute": "Execute",
+        "verify": "Verify",
+        "current": "Current stage: {{stage}}"
+      },
+      "activity": {
+        "attention": "Waiting for your input",
+        "working": "Working",
+        "done": "Ready to verify",
+        "idle": "Idle"
+      }
     },
     "terminal": {
       "closed": "No live terminal — this agent's pane has closed.",
@@ -17004,6 +17024,10 @@
       "ssh": "SSH host",
       "remoteNamed": "Remote Orca host · {{host}}",
       "remote": "Remote Orca host"
+    },
+    "summary": {
+      "working": "{{count}} working",
+      "needsYou": "{{count}} need you"
     }
   },
   "dashboard": {

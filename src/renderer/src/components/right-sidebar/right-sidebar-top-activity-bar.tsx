@@ -37,7 +37,7 @@ export function RightSidebarTopActivityBar({
   return (
     /* ── Top activity bar: horizontal icon row ── */
     <ContextMenu>
-      <div className="flex h-[36px] min-h-[36px] items-center border-b border-border right-sidebar-header-inset right-sidebar-header-drag overflow-hidden">
+      <div className="flex h-[44px] min-h-[44px] items-center overflow-hidden border-b border-border right-sidebar-header-inset right-sidebar-header-drag">
         {!hasDesktopWindowChrome && (
           <TooltipProvider delayDuration={400}>
             <ContextMenuTrigger asChild>

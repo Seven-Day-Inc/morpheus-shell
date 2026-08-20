@@ -108,7 +108,7 @@ export function isMacAppPasteInput(input: Electron.Input): boolean {
 }
 
 // Why: titlebar content center sits ~18 CSS px from top (×zoom); traffic lights are ~12px tall, so top edge = center − 6.
-export const TITLEBAR_CSS_CENTER = 18
+export const TITLEBAR_CSS_CENTER = 22
 export const TRAFFIC_LIGHT_RADIUS = 6
 export const TRAFFIC_LIGHT_X = 16
 export const MIN_WIDTH = 600
