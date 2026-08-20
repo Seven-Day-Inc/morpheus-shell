@@ -8,9 +8,12 @@ import { BoundedMap } from '../../shared/bounded-map'
 import { normalizeExecutionHostId } from '../../shared/execution-host'
 import { sanitizeRepoIcon } from '../../shared/repo-icon'
 import {
+  AGENT_MODEL_MAX_LENGTH,
   AGENT_STATUS_ASSISTANT_MESSAGE_MAX_LENGTH,
   AGENT_STATUS_INTERACTIVE_PROMPT_MAX_LENGTH,
   AGENT_STATUS_MAX_FIELD_LENGTH,
+  AGENT_STATUS_TOOL_INPUT_MAX_LENGTH,
+  AGENT_STATUS_TOOL_NAME_MAX_LENGTH,
   AGENT_TYPE_MAX_LENGTH
 } from '../../shared/agent-status-types'
 import { isDashboardLaunchOptions } from './dashboard-agent-launch-validation'
@@ -252,6 +255,7 @@ function isDashboardCard(value: unknown): boolean {
     isBoundedString(card.paneKey, MAX_ID_LENGTH) &&
     (card.ptyId === null || isBoundedString(card.ptyId, MAX_ID_LENGTH)) &&
     isBoundedString(card.agentType, AGENT_TYPE_MAX_LENGTH) &&
+    isOptionalBoundedString(card.model, AGENT_MODEL_MAX_LENGTH) &&
     typeof card.bucket === 'string' &&
     DASHBOARD_BUCKETS.has(card.bucket) &&
     typeof card.dotState === 'string' &&
@@ -259,6 +263,8 @@ function isDashboardCard(value: unknown): boolean {
     isBoundedString(card.task, AGENT_STATUS_MAX_FIELD_LENGTH, true) &&
     isOptionalBoundedString(card.lastUserMessage, AGENT_STATUS_MAX_FIELD_LENGTH) &&
     isOptionalBoundedString(card.lastAgentMessage, AGENT_STATUS_ASSISTANT_MESSAGE_MAX_LENGTH) &&
+    isOptionalBoundedString(card.toolName, AGENT_STATUS_TOOL_NAME_MAX_LENGTH) &&
+    isOptionalBoundedString(card.toolInput, AGENT_STATUS_TOOL_INPUT_MAX_LENGTH) &&
     isBoundedString(card.repoId, MAX_ID_LENGTH) &&
     isBoundedString(card.worktreeId, MAX_ID_LENGTH) &&
     isBoundedString(card.tabId, MAX_ID_LENGTH) &&

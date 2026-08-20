@@ -2235,7 +2235,7 @@ function App(): React.JSX.Element {
           // Shared so surfaces can avoid the Windows/Linux window-controls overlay without hardcoding 138px everywhere.
           '--window-controls-width': hasCustomTitleBar ? '138px' : '0px',
           // Side-position activity bar uses this to push icons below the Windows/Linux window-controls overlay.
-          '--window-controls-height': hasCustomTitleBar ? '36px' : '0px'
+          '--window-controls-height': hasCustomTitleBar ? '44px' : '0px'
         } as React.CSSProperties
       }
     >
@@ -2299,7 +2299,7 @@ function App(): React.JSX.Element {
                             {titlebarLeftControls}
                           </div>
                           <div className="flex min-h-0 flex-1">
-                            {/* Why: flex-1/min-h-0 slot needed under the fixed 36px header, else the sidebar collapses to content height and loses its scroll viewport. */}
+                            {/* Why: flex-1/min-h-0 keeps the sidebar scroll viewport below the fixed chrome. */}
                             <RecoverableRenderErrorBoundary
                               boundaryId="sidebar.worktrees"
                               surface="sidebar"
@@ -2342,15 +2342,15 @@ function App(): React.JSX.Element {
                       )
                     ) : null}
                     <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
-                      {/* Why: automations owns its page header; the stacked titlebar would be an empty 36px stripe. */}
+                      {/* Why: automations owns its page header; the stacked titlebar would be an empty stripe. */}
                       {stackedSidebarOpen && activeView !== 'automations' ? (
                         <div className="titlebar">{titlebarMainStrip}</div>
                       ) : null}
                       <div className="relative flex flex-1 min-w-0 min-h-0 overflow-hidden">
-                        {/* Why: match the RightSidebar header's 36px/top-0 so the toggle's vertical center is identical open vs closed — else the icon jitters. */}
+                        {/* Why: match the RightSidebar header so the toggle's vertical center is identical open vs closed. */}
                         {workspaceChromeActive && !rightSidebarOpen && (
                           <div
-                            className="absolute top-0 z-10 flex items-center h-[36px]"
+                            className="absolute top-0 z-10 flex h-[44px] items-center"
                             style={
                               {
                                 // Why: --window-controls-width keeps the toggle clear of the fixed window-controls overlay (138px on custom chrome, 0px otherwise); no internal spacer — one would cover the pane-actions Ellipsis button with an unclickable div.

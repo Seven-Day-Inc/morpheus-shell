@@ -301,8 +301,8 @@ export default function TabGroupSplitLayout({
           window-drag region at the top. Only the split layout's own panes
           own the resize handles, while this strip keeps the whole top of the
           center column draggable regardless of how the splits are arranged.
-          Why 4px specifically: pairs with the 32px tab row below so the
-          total top-band is 36px, matching the sibling `titlebar-left` above
+          Why 6px specifically: pairs with the 38px tab row below so the
+          total top-band is 44px, matching the sibling `titlebar-left` above
           the sidebar. Keep this small — it's just enough drag surface above
           the tabs without opening a visible gap between the window top and
           the tab chrome. Without this, the tab row's bottom border falls short
@@ -316,7 +316,7 @@ export default function TabGroupSplitLayout({
           ref={dragSplit.setDragRootNode}
           className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden border-l border-border"
         >
-          <div className="h-[4px] shrink-0 bg-card" data-terminal-focus-release-surface="true" />
+          <div className="h-[6px] shrink-0 bg-card" data-terminal-focus-release-surface="true" />
           <div className="flex flex-1 min-w-0 min-h-0 overflow-hidden">
             <SplitNode
               node={layout}
