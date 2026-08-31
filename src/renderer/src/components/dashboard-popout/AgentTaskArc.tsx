@@ -1,7 +1,10 @@
 import { AgentStateDot } from '@/components/AgentStateDot'
 import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
-import type { DashboardCard } from '../../../../shared/dashboard-snapshot'
+import {
+  dashboardCardDisplayState,
+  type DashboardCard
+} from '../../../../shared/dashboard-snapshot'
 
 type AgentTaskPhase = 'plan' | 'execute' | 'verify'
 
@@ -43,6 +46,7 @@ export function agentActivityLabel(
 export function AgentTaskArc({ card }: { card: DashboardCard }): React.JSX.Element {
   const currentPhase = agentTaskPhase(card)
   const currentIndex = PHASES.indexOf(currentPhase)
+  const displayState = dashboardCardDisplayState(card)
 
   return (
     <div className="flex flex-col gap-1.5" data-task-arc="true">
@@ -89,7 +93,7 @@ export function AgentTaskArc({ card }: { card: DashboardCard }): React.JSX.Eleme
         })}
       </div>
       <div className="flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
-        <AgentStateDot state={card.dotState} />
+        <AgentStateDot state={displayState} />
         <span className="truncate" title={agentActivityLabel(card)}>
           {agentActivityLabel(card)}
         </span>

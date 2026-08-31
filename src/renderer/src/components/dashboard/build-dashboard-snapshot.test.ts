@@ -494,7 +494,7 @@ describe('buildDashboardSnapshot', () => {
     expect(snapshot.cards[0].ptyId).toBeNull()
   })
 
-  it('moves an acknowledged completion to idle while retaining its raw done state', () => {
+  it('keeps an acknowledged completion in the done bucket', () => {
     const snapshot = buildDashboardSnapshot(
       baseState({
         agentStatusByPaneKey: { [PANE_KEY]: entry({ state: 'done' }) },
@@ -505,7 +505,7 @@ describe('buildDashboardSnapshot', () => {
     // ack (NOW-1000) is after stateStartedAt (NOW-5000) → seen.
     expect(snapshot.cards[0].unseen).toBe(false)
     expect(snapshot.cards[0].dotState).toBe('done')
-    expect(snapshot.cards[0].bucket).toBe('idle')
+    expect(snapshot.cards[0].bucket).toBe('done')
   })
 
   it('does not mark title-derived rows unseen from synthetic timestamps', () => {

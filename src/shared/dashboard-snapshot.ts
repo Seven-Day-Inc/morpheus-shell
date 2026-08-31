@@ -37,14 +37,14 @@ export const DASHBOARD_MAX_MAP_WORKSPACES = 2_000
 export type DashboardCardDotState = 'working' | 'blocked' | 'waiting' | 'done' | 'idle'
 export type DashboardCardDisplayState = DashboardCardDotState | 'monitoring'
 
-/** Completed agents stay green until acknowledged, then settle into gray idle. */
+/** Acknowledgement controls review affordances, not the agent lifecycle state. */
 export function dashboardCardDisplayState(
   card: Pick<DashboardCard, 'dotState' | 'workingMode' | 'unseen'>
 ): DashboardCardDisplayState {
   if (card.dotState === 'working' && card.workingMode === 'monitoring') {
     return 'monitoring'
   }
-  return card.dotState === 'done' && !card.unseen ? 'idle' : card.dotState
+  return card.dotState
 }
 
 export type DashboardCardReview = {

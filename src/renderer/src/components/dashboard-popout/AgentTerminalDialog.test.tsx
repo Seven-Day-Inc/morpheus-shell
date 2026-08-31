@@ -91,16 +91,16 @@ describe('AgentTerminalDialog', () => {
     expect(screen.getByTestId('preview')).toHaveAttribute('data-terminal-input', 'null')
   })
 
-  it('labels acknowledged completions idle without review or pin controls', () => {
+  it('labels acknowledged completions done without review or pin controls', () => {
     render(
       <AgentTerminalDialog
-        card={card({ bucket: 'idle', dotState: 'done', finishedAt: 100, unseen: false })}
+        card={card({ bucket: 'done', dotState: 'done', finishedAt: 100, unseen: false })}
         onOpenChange={() => {}}
         onReveal={() => {}}
       />
     )
 
-    expect(screen.getByText(/Claude · Idle/)).toBeInTheDocument()
+    expect(screen.getByText(/Claude · Done/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Keep visible' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Mark reviewed' })).not.toBeInTheDocument()
     expect(screen.getByTestId('preview')).toHaveAttribute('data-pty-id', 'pty-1')

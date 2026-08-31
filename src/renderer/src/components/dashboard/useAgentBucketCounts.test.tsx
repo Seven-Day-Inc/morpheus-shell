@@ -57,17 +57,11 @@ describe('useAgentBucketCounts', () => {
     )
   })
 
-  it('moves acknowledged completions to idle without recomputing for unrelated writes', () => {
-    mocks.buildDashboardSnapshot.mockImplementation(
-      (state: { acknowledgedAgentsByPaneKey?: Record<string, number> }) => ({
-        generatedAt: 1,
-        cards: [
-          {
-            bucket: state.acknowledgedAgentsByPaneKey?.['pane-done'] ? 'idle' : 'done'
-          }
-        ]
-      })
-    )
+  it('keeps acknowledged completions done without recomputing for unrelated writes', () => {
+    mocks.buildDashboardSnapshot.mockReturnValue({
+      generatedAt: 1,
+      cards: [{ bucket: 'done' }]
+    })
     const { result, rerender } = renderHook(() => useAgentBucketCounts())
 
     expect(result.current).toEqual({ attention: 0, working: 0, done: 1, idle: 0 })
@@ -79,7 +73,7 @@ describe('useAgentBucketCounts', () => {
 
     mocks.state.acknowledgedAgentsByPaneKey = { 'pane-done': 1 }
     rerender()
-    expect(result.current).toEqual({ attention: 0, working: 0, done: 0, idle: 1 })
+    expect(result.current).toEqual({ attention: 0, working: 0, done: 1, idle: 0 })
     expect(mocks.buildDashboardSnapshot).toHaveBeenCalledTimes(2)
   })
 })

@@ -5,10 +5,8 @@ import {
   type DashboardCardDotState
 } from '../../../../shared/dashboard-snapshot'
 
-/** Map-only refinement of the shared dot state. `dashboardCardDisplayState` folds an
- *  acknowledged finish into `idle`, which is right for bucket counts but loses the one
- *  distinction the map exists to show: finished-and-unread vs finished-and-still-yours.
- *  Kept local so `DashboardCardDotState` — which crosses the pop-out bridge — is unchanged. */
+/** Map-only refinement: the board keeps completions in Done while the map distinguishes
+ *  fresh results from ones already seen. Kept local so the pop-out bridge stays unchanged. */
 export type AgentMapNodeStatus = DashboardCardDisplayState | 'done-seen'
 
 export function agentMapDurationMinutes(card: DashboardCard, now: number): number {

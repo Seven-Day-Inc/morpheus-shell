@@ -171,10 +171,11 @@ describe('AgentKanbanBoard', () => {
     expect(working?.className).toContain('border-border/60')
   })
 
-  it('folds completed work by default and expands it on demand', () => {
+  it('keeps acknowledged completed work in the folded Done lane', () => {
     renderBoard([card({ bucket: 'done', dotState: 'done', worktreeName: 'finished' })])
 
     const lane = document.querySelector('[data-agent-board-lane="done"]')
+    expect(screen.getByText('1 total')).toBeInTheDocument()
     expect(lane).toHaveAttribute('data-lane-collapsed', 'true')
     fireEvent.click(screen.getByRole('button', { name: 'Expand Done lane' }))
     expect(lane).toHaveAttribute('data-lane-collapsed', 'false')
@@ -337,13 +338,13 @@ describe('AgentKanbanBoard', () => {
       <AgentKanbanBoard
         snapshot={{
           generatedAt: 2,
-          cards: [{ ...agent, bucket: 'idle', unseen: false }],
+          cards: [{ ...agent, bucket: 'done', unseen: false }],
           showIdle: true
         }}
       />
     )
     expect(screen.getByTestId('card').dataset.unseen).toBe('false')
-    expect(screen.getByTestId('card').dataset.bucket).toBe('idle')
+    expect(screen.getByTestId('card').dataset.bucket).toBe('done')
     expect(ackAgent).not.toHaveBeenCalled()
 
     // A state change while the dialog is open re-acks (watching counts as

@@ -564,7 +564,7 @@ describe('agent map layout', () => {
   it('marks only operationally quiet workspaces for semantic aggregation', () => {
     const quiet = deriveAgentMapLayout(
       Array.from({ length: 5 }, (_, index) =>
-        card({ paneKey: `quiet-${index}`, dotState: index === 0 ? 'done' : 'idle' })
+        card({ paneKey: `quiet-${index}`, dotState: 'idle' })
       ),
       NOW
     )

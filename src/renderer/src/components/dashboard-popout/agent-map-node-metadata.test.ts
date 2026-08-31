@@ -42,9 +42,7 @@ describe('agentMapNodeStatus', () => {
   })
 
   it('never collapses an acknowledged finish into idle', () => {
-    // The shared `dashboardCardDisplayState` does exactly that for bucket counts, which
-    // would make finished-but-unlanded work indistinguishable from a workspace that
-    // never ran. The map keeps them apart.
+    // The map keeps a seen result apart from a workspace that never ran.
     expect(agentMapNodeStatus(card({ unseen: false }))).not.toBe('idle')
     expect(agentMapNodeStatus(card({ bucket: 'idle', dotState: 'idle', finishedAt: null }))).toBe(
       'idle'
