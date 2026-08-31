@@ -67,8 +67,11 @@ export function AutomationEditorPromptEditor({
   const lastSyncedContentRef = useRef(value)
   const isApplyingProgrammaticContentRef = useRef(false)
   const onDismissRef = useRef(onDismiss)
-  contentRef.current = value
-  onDismissRef.current = onDismiss
+
+  useLayoutEffect(() => {
+    contentRef.current = value
+    onDismissRef.current = onDismiss
+  }, [onDismiss, value])
 
   const fontSize = computeEditorFontSize(settings?.terminalFontSize ?? 13, editorFontZoomLevel)
   const fontFamily = resolveEditorFontFamily(settings)
