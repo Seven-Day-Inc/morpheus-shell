@@ -20,6 +20,8 @@
 
 import { rebuild } from '@electron/rebuild'
 import { execFileSync, spawnSync } from 'node:child_process'
+import { rebuildWindowsProcessTreeForElectron } from './windows-process-tree-electron-rebuild.mjs'
+import { repairWindowsProcessTreeBuildSources } from './windows-process-tree-source-preparation.mjs'
 import {
   copyFileSync,
   existsSync,
@@ -132,21 +134,56 @@ if (!ignoreModules.includes('cpu-features')) {
   }
 }
 
+const windowsProcessTreePackageDir = join(
+  projectDir,
+  'node_modules',
+  '@vscode',
+  'windows-process-tree'
+)
+if (
+  rebuildPlatform === 'win32' &&
+  modulesToRebuild.includes('@vscode/windows-process-tree') &&
+  existsSync(join(windowsProcessTreePackageDir, 'package.json')) &&
+  repairWindowsProcessTreeBuildSources(windowsProcessTreePackageDir)
+) {
+  console.warn('[rebuild] Repaired un-applied windows-process-tree patch hunks before rebuild.')
+}
+
+const rebuildWindowsProcessTree =
+  rebuildPlatform === 'win32' &&
+  modulesToRebuild.includes('@vscode/windows-process-tree') &&
+  existsSync(join(windowsProcessTreePackageDir, 'package.json'))
+if (rebuildWindowsProcessTree) {
+  modulesToRebuild = modulesToRebuild.filter(
+    (moduleName) => moduleName !== '@vscode/windows-process-tree'
+  )
+}
+
 try {
-  await rebuild({
-    buildPath: projectDir,
-    electronVersion,
-    platform: rebuildPlatform,
-    arch: rebuildArch,
-    ignoreModules,
-    onlyModules: modulesToRebuild,
-    // Why: without force, @electron/rebuild skips modules it considers
-    // "already built" — even when they were compiled for the wrong ABI
-    // (e.g., system Node instead of Electron's embedded Node). This is
-    // common after pnpm install, which compiles native modules for system
-    // Node before postinstall runs this script.
-    force: true
-  })
+  if (modulesToRebuild.length > 0) {
+    await rebuild({
+      buildPath: projectDir,
+      electronVersion,
+      platform: rebuildPlatform,
+      arch: rebuildArch,
+      ignoreModules,
+      onlyModules: modulesToRebuild,
+      // Why: without force, @electron/rebuild skips modules it considers
+      // "already built" — even when they were compiled for the wrong ABI
+      // (e.g., system Node instead of Electron's embedded Node). This is
+      // common after pnpm install, which compiles native modules for system
+      // Node before postinstall runs this script.
+      force: true
+    })
+  }
+  if (rebuildWindowsProcessTree) {
+    rebuildWindowsProcessTreeForElectron({
+      projectDir,
+      packageDir: windowsProcessTreePackageDir,
+      electronVersion,
+      arch: rebuildArch
+    })
+  }
   restoreNodePtyWindowsConptyRuntime()
 } catch (/** @type {any} */ err) {
   console.error('[rebuild] Native module rebuild failed:', err?.message ?? err)

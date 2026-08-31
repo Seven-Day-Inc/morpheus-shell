@@ -21,6 +21,12 @@ const sourceInstallScriptPath = fileURLToPath(
 const sourceNodePtyJobOwnershipPath = fileURLToPath(
   new URL('./node-pty-job-ownership.cjs', import.meta.url)
 )
+const sourceWindowsProcessTreeSourcePreparationPath = fileURLToPath(
+  new URL('./windows-process-tree-source-preparation.mjs', import.meta.url)
+)
+const sourceWindowsProcessTreeElectronRebuildPath = fileURLToPath(
+  new URL('./windows-process-tree-electron-rebuild.mjs', import.meta.url)
+)
 
 describe('rebuild-native-deps Electron install fallback', () => {
   it('continues non-strict postinstall when Electron retry download fails', () => {
@@ -343,6 +349,14 @@ function mkTempProject() {
   copyFileSync(
     sourceNodePtyJobOwnershipPath,
     join(projectDir, 'config', 'scripts', 'node-pty-job-ownership.cjs')
+  )
+  copyFileSync(
+    sourceWindowsProcessTreeSourcePreparationPath,
+    join(projectDir, 'config', 'scripts', 'windows-process-tree-source-preparation.mjs')
+  )
+  copyFileSync(
+    sourceWindowsProcessTreeElectronRebuildPath,
+    join(projectDir, 'config', 'scripts', 'windows-process-tree-electron-rebuild.mjs')
   )
   return projectDir
 }
