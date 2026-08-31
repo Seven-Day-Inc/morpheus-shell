@@ -57,7 +57,7 @@ The runtime advertises:
 
 The declarations and advertised list are in `src/shared/protocol-version.ts:47-52`, `src/shared/protocol-version.ts:83-90`, and `src/shared/protocol-version.ts:100-138`. AI Vault exposes `resolveSessionTitles`, `listSessions`, and `prepareSessionResume` (`src/main/runtime/rpc/methods/ai-vault.ts:75-111`). These are discovery/resume metadata capabilities, not a live conversation-event transport. Native Chat has separate `nativeChat.readSession` and `nativeChat.subscribe` RPC methods (`src/main/runtime/rpc/methods/native-chat.ts:203-316`).
 
-There is no `kimi-resume` capability literal in this source tree. Kimi is parsed by AI Vault and resumed as `kimi --session <id>` (`src/main/ai-vault/session-scanner-kimi-parser.ts:55-73`, `src/shared/ai-vault-resume-command.ts:147-170`), but Kimi is not a Native Chat transcript agent: that set is Claude/OpenClaude, Codex, Grok, and OMP (`src/shared/native-chat-agent-support.ts:1-13`).
+The live installed 1.4.192 runtime advertises `agent-session.kimi-resume.v1`, but that capability literal is absent from this reviewed checkout; it is a concrete mixed-version/host-ahead signal, not a live Chat event stream available in this code. Here, Kimi is parsed by AI Vault and resumed as `kimi --session <id>` (`src/main/ai-vault/session-scanner-kimi-parser.ts:55-73`, `src/shared/ai-vault-resume-command.ts:147-170`), but Kimi is not a Native Chat transcript agent: that set is Claude/OpenClaude, Codex, Grok, and OMP (`src/shared/native-chat-agent-support.ts:1-13`).
 
 ### 1.4 The actual conversation source
 
