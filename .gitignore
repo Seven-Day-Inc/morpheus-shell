@@ -146,3 +146,7 @@ tests/tools/benchmarks/results/terminal-pipeline-*.json
 
 # Old release trees the cross-version wire harness extracts on demand
 tests/e2e/.cross-version-checkouts/
+
+# Fork-owned (Seven-Day-Inc/morpheus-shell): chat transport contracts are durable tracked docs
+!docs/chat-transport/
+!docs/chat-transport/**
