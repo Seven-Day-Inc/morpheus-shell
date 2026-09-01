@@ -93,6 +93,16 @@ describe('root directory guard', () => {
     expect(result.stdout).toContain('no new root-level files or folders')
   })
 
+  it('allows the designated root-level tooling directory', () => {
+    const fixture = makeFixture()
+    const head = commitFiles(fixture.root, [['tools/upstream/watch.mjs', 'watch\n']])
+
+    const result = runGuard({ ...fixture, head })
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('no new root-level files or folders')
+  })
+
   it('rejects a new root-level file with the landing-page message', () => {
     const fixture = makeFixture()
     const head = commitFiles(fixture.root, [['new-root.md', 'too prominent\n']])

@@ -1,0 +1,153 @@
+name: Upstream Watch
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 9 * * 1'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: upstream-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    if: github.repository == 'Seven-Day-Inc/morpheus-shell'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout fork main
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Configure read-only upstream
+        shell: bash
+        run: |
+          if git remote get-url upstream >/dev/null 2>&1; then
+            git remote set-url upstream https://github.com/stablyai/orca.git
+          else
+            git remote add upstream https://github.com/stablyai/orca.git
+          fi
+          git remote set-url --push upstream no_push
+          git fetch --no-tags origin pin/v1.4.183:refs/remotes/origin/pin/v1.4.183
+
+      - name: Collect upstream delta
+        run: >-
+          node tools/upstream/watch.mjs --fetch --pin-ref origin/pin/v1.4.183
+          > upstream-delta.json
+
+      - name: Maintain upstream availability issue
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require("fs");
+            const delta = JSON.parse(fs.readFileSync("upstream-delta.json", "utf8"));
+            const { owner, repo } = context.repo;
+            const label = "upstream-watch";
+            const marker = "<!-- orca-upstream-watch -->";
+
+            async function ensureLabel() {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name: label });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  name: label,
+                  color: "0e8a16",
+                  description: "Automated upstream availability tracking",
+                });
+              }
+            }
+
+            function issueBody() {
+              const headline = delta.available
+                ? `Upstream ${delta.newVersion} is available for merge-candidate assessment.`
+                : "No newer upstream release tag is available than the current pin.";
+              const areas = delta.changedAreas.length === 0
+                ? "- None"
+                : delta.changedAreas.map((area) => `- ${area.area}: ${area.files} files`).join("\n");
+              return [
+                marker,
+                "# Upstream availability",
+                "",
+                headline,
+                "",
+                `- Pin: \`${delta.pin.ref}\` (${delta.pin.version})`,
+                `- Upstream repository: \`${delta.upstream.repository}\``,
+                `- Commits since pin: ${delta.commitCount}`,
+                "",
+                "## Changed areas",
+                "",
+                areas,
+                "",
+                "## Machine-readable delta",
+                "",
+                "```json",
+                JSON.stringify(delta, null, 2),
+                "```",
+              ].join("\n");
+            }
+
+            await ensureLabel();
+            const allIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              labels: label,
+              state: "all",
+              per_page: 100,
+            });
+            const tracked = allIssues
+              .filter((issue) => !issue.pull_request)
+              .sort((left, right) => left.number - right.number);
+            const primary = tracked.find((issue) => issue.state === "open") || tracked[0];
+            const duplicates = tracked.filter((issue) => issue.number !== primary?.number);
+            const body = issueBody();
+
+            if (delta.available) {
+              const title = `upstream: ${delta.newVersion} available`;
+              if (primary) {
+                await github.rest.issues.update({
+                  owner,
+                  repo,
+                  issue_number: primary.number,
+                  state: "open",
+                  title,
+                  body,
+                });
+                await github.rest.issues.setLabels({
+                  owner,
+                  repo,
+                  issue_number: primary.number,
+                  labels: [label],
+                });
+              } else {
+                await github.rest.issues.create({ owner, repo, title, body, labels: [label] });
+              }
+            } else if (primary) {
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: primary.number,
+                state: "closed",
+                title: "upstream: no newer version available",
+                body,
+              });
+            }
+
+            for (const duplicate of duplicates) {
+              if (duplicate.state === "open") {
+                await github.rest.issues.update({
+                  owner,
+                  repo,
+                  issue_number: duplicate.number,
+                  state: "closed",
+                  body: `${duplicate.body || ""}\n\n${marker}\nSuperseded by the standing upstream watch issue.`,
+                });
+              }
+            }
