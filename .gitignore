@@ -165,3 +165,7 @@ tests/e2e/.cross-version-checkouts/
 # IS committed). Also keeps oxfmt/oxlint, which honor this file, from walking
 # vendored gems.
 /mobile/vendor/
+
+# Fork-owned (Seven-Day-Inc/morpheus-shell): chat transport contracts are durable tracked docs
+!docs/chat-transport/
+!docs/chat-transport/**
