@@ -13,11 +13,22 @@ idempotency. What this contract guarantees instead:
 - any unresolved crash window is surfaced as `deliveryUnknown` — never shown as success
   or failure, never silently retried.
 
-## Mutation states
+## Mutation states (frozen verbatim — a union, not a ruled ordering)
 
-`committed → attempted → observed | notAccepted | deliveryUnknown | canceled`.
+```ts
+type MutationStateV1 =
+  | "committed"
+  | "attempted"
+  | "observed"
+  | "notAccepted"
+  | "deliveryUnknown"
+  | "canceled";
+```
+
 "Committed" means only that Orca durably accepted responsibility for the intent — it is
-never rendered as "sent" or "acknowledged".
+never rendered as "sent" or "acknowledged". The verdict rules the states and their
+meanings; it does not rule a transition state machine — defining one is a separate
+decision if ever needed.
 
 ## Send command
 

@@ -34,8 +34,11 @@ live (see Contract 1 §Session status).
 
 ## Adopted-engine notes
 
-Upstream reduces via `journal-reducer` over epoch-scoped rows. Qualification proves the
-reducer invariant across an epoch rollover boundary (their `seq` resets per epoch — the
-equivalence claim is that `(epoch, seq)` chains reduce identically to one flat domain;
-if a cross-epoch ordering ambiguity is found for approvals/interruptions/ownership
-changes, it is a contract violation, not an acceptable deviation).
+Upstream reduces via `journal-reducer` over epoch-scoped rows whose sequence resets each
+epoch. That is an **engine detail, not an alternative contract**: the ruling is one
+flat, session-wide, gap-free, never-reused `seq` domain (Contract 1), and reduction is
+ordered by `seq` alone. The facade therefore normalizes upstream's `(epoch, sequence)`
+rows into the canonical flat domain before events enter the journal projection path.
+Qualification tests the NORMALIZATION — including across an epoch rollover with
+interleaved approvals/interruptions/ownership changes — not an equivalence exception.
+Changing this requires a new ledger decision, not an engine accommodation.
