@@ -2,7 +2,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { rmSync } from 'node:fs'
 import { DaemonClient } from './client'
-import { DaemonPtyAdapter, LIVENESS_PROBE_TIMEOUT_MS } from './daemon-pty-adapter'
+import { DaemonPtyAdapter } from './daemon-pty-adapter'
+import { LIVENESS_PROBE_TIMEOUT_MS } from './daemon-pty-session-control'
 import {
   COMPLETION_PROCESS_INSPECTION_PROTOCOL_VERSION,
   GET_FOREGROUND_PROCESS_PROTOCOL_VERSION,
@@ -12,6 +13,7 @@ import {
 import type { DaemonServer } from './daemon-server'
 import { createMockSubprocess, startDaemonAdapterHarness } from './daemon-pty-adapter-test-harness'
 import type * as DaemonHealthModule from './daemon-health'
+import type * as DaemonTccAttributionModule from './daemon-tcc-attribution'
 
 const { getMacDaemonSystemResolverHealthMock, getMacDaemonTccAttributionHealthMock } = vi.hoisted(
   () => ({
@@ -28,7 +30,14 @@ vi.mock('./daemon-health', async (importOriginal) => {
   const actual = await importOriginal<typeof DaemonHealthModule>()
   return {
     ...actual,
-    getMacDaemonSystemResolverHealth: getMacDaemonSystemResolverHealthMock,
+    getMacDaemonSystemResolverHealth: getMacDaemonSystemResolverHealthMock
+  }
+})
+
+vi.mock('./daemon-tcc-attribution', async (importOriginal) => {
+  const actual = await importOriginal<typeof DaemonTccAttributionModule>()
+  return {
+    ...actual,
     getMacDaemonTccAttributionHealth: getMacDaemonTccAttributionHealthMock
   }
 })
