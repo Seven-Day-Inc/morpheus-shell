@@ -258,6 +258,21 @@ describe('per-job path classification', () => {
     expect(result.stdout).toContain('package=false\n')
     expect(result.stdout).toContain('test=true\n')
   })
+
+  it('accepts a large piped diff without synchronous stdin failures', () => {
+    const input = `${Array.from(
+      { length: 10_000 },
+      (_, index) => `src/main/large-diff-${index}.ts`
+    ).join('\n')}\n`
+    const result = spawnSync(process.execPath, ['config/scripts/pr-code-change-scope.mjs'], {
+      cwd: projectDir,
+      encoding: 'utf8',
+      input
+    })
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain('should_run=true\n')
+    expect(result.stdout).toContain('test=true\n')
+  })
 })
 
 describe('PR Checks skip wiring', () => {

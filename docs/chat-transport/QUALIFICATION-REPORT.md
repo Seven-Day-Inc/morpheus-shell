@@ -1,6 +1,17 @@
 # Structured chat engine qualification — v1.4.194 candidate
 
-## Executive verdict
+## ADDENDUM — landing disposition
+
+**LAND.** The subsequent Windows control in
+[`CONTROL-REPORT.md`](./CONTROL-REPORT.md) classified all 43 candidate failures as
+`UPSTREAM-ON-WINDOWS`, with zero merge-induced failures; Sol independently reproduced
+that result. The founder decision
+`centrifuge/decisions/2026-09-01-chat-transport-adopt-upstream-engine.md` dispositions
+the contract gaps below as the follow-on build behind Einstein's facade rather than as
+landing blockers. This addendum supersedes the original point-in-time verdict and
+recommendation retained below.
+
+## Original executive verdict (superseded)
 
 **Do not land this candidate yet.** The upstream Codex engine passes the requested
 double-dispatch, crash-ambiguity, replay-within-an-epoch, and fail-closed ownership
@@ -43,7 +54,7 @@ merge regressions. Another 55 failed candidate files do not exist on main and ca
 classified by this baseline. Twenty-five main failures no longer fail, or no longer
 exist, on the candidate.
 
-### Real merge regressions — candidate failed, same main file passed (43)
+### Initially classified merge regressions (43; superseded by the control)
 
 ```text
 config/scripts/build-windows-cli-launcher.test.mjs
@@ -330,7 +341,7 @@ qualification directory was therefore linted directly.
    conservative, but the facade must expose the frozen `committed` / `attempted` /
    `deliveryUnknown` meanings without claiming evidence the engine does not store.
 
-## Recommendation
+## Original recommendation (superseded)
 
 Do **not** land the current candidate. Preserve the upstream engine direction—the tested
 Codex mutation journal and lease adjudicator are a strong base—but first resolve or

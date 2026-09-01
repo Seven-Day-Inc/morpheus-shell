@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { join } from 'node:path'
 import {
   assessCandidate,
   candidateBranchForTag,
@@ -81,7 +82,15 @@ describe('upstream merge candidates', () => {
     })
     expect(testCalls).toEqual([['pnpm', ['test'], { cwd: 'candidate-fixture' }]])
     expect(writes).toHaveLength(1)
+    expect(writes[0][0]).toBe(
+      join('candidate-fixture', 'docs', 'chat-transport', 'CANDIDATE-REPORT.md')
+    )
     expect(writes[0][1]).toContain('| `src/renderer/src/panel.tsx` | clean |')
+    expect(calls).toContainEqual([
+      'add',
+      '--',
+      join('docs', 'chat-transport', 'CANDIDATE-REPORT.md')
+    ])
     expect(calls).toContainEqual(['merge', '--no-ff', '--no-edit', 'refs/upstream/tags/v1.4.184'])
     expect(calls.some((args) => args[0] === 'merge' && args[1] === '--abort')).toBe(false)
     expect(calls.some((args) => args[0] === 'checkout' || args[0] === 'restore')).toBe(false)
