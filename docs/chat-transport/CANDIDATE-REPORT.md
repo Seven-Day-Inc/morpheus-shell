@@ -7,6 +7,7 @@
 - Merge result: **conflicted**
 - Conflicts were recorded and the merge was aborted; no conflict resolution was attempted.
 - Thin-fork rule: fork surfaces live in added modules; candidate merges may not rewrite panels.
+- Fork prerequisite: publish every assessed upstream release tag to `origin` so cross-version CI can resolve it.
 
 ## Upstream test suite
 

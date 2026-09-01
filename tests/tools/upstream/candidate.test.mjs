@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { describe, expect, it } from 'vitest'
 import {
   assessCandidate,
   candidateBranchForTag,
@@ -55,6 +57,7 @@ function candidateOptions(git, overrides = {}) {
     readFile: () =>
       JSON.stringify({ packageManager: 'pnpm@10.24.0', scripts: { test: 'vitest run' } }),
     fileExists: () => false,
+    makeDirectory: () => {},
     writeFile: (...args) => writes.push(args),
     runCommand: (...args) => {
       testCalls.push(args)
@@ -94,6 +97,24 @@ describe('upstream merge candidates', () => {
     expect(calls).toContainEqual(['merge', '--no-ff', '--no-edit', 'refs/upstream/tags/v1.4.184'])
     expect(calls.some((args) => args[0] === 'merge' && args[1] === '--abort')).toBe(false)
     expect(calls.some((args) => args[0] === 'checkout' || args[0] === 'restore')).toBe(false)
+  })
+
+  it('creates a missing report directory before writing with the real filesystem', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'orca-upstream-candidate-'))
+    try {
+      const { git } = createCandidateGit()
+      const { result } = candidateOptions(git, {
+        cwd,
+        makeDirectory: mkdirSync,
+        writeFile: writeFileSync
+      })
+
+      expect(readFileSync(result.reportPath, 'utf8')).toContain(
+        '# Upstream merge candidate: v1.4.184'
+      )
+    } finally {
+      rmSync(cwd, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 })
+    }
   })
 
   it('aborts a conflicted merge, commits its report, and never runs tests on guesses', () => {

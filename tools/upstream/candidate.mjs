@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { gitExitCode, runGitCommand } from './git-command-runner.mjs'
@@ -243,6 +243,7 @@ export function assessCandidate({
   git = runGitCommand,
   readFile = readFileSync,
   fileExists = existsSync,
+  makeDirectory = mkdirSync,
   writeFile = writeFileSync,
   runCommand = executeTestCommand,
   now = new Date()
@@ -307,6 +308,7 @@ export function assessCandidate({
     test,
     now
   })
+  makeDirectory(path.dirname(reportPath), { recursive: true })
   writeFile(reportPath, report, 'utf8')
   git(['add', '--', REPORT_FILENAME])
   git(['commit', '-m', reportCommitMessage(validatedTag, outcome)])
