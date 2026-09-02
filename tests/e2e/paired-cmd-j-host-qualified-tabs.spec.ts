@@ -331,16 +331,27 @@ test('routes same-id browser and simulator Cmd-J rows to their owning paired hos
     await palette.locator(`[cmdk-item][data-value="browser-page:${seeded.remotePageId}"]`).click()
     await expect
       .poll(() =>
-        page.evaluate(() => {
+        page.evaluate((worktreeId) => {
           const state = window.__store!.getState()
+          const activeGroupId = state.activeGroupIdByWorktree[worktreeId]
           return [
             state.activeWorkspaceExecutionHostId,
             state.activeBrowserTabId,
-            state.activeTabType
+            state.activeTabType,
+            activeGroupId,
+            (state.groupsByWorktree[worktreeId] ?? []).find((group) => group.id === activeGroupId)
+              ?.activeTabId
           ]
-        })
+        }, seeded.sharedWorktreeId)
       )
-      .toEqual([remoteHostId, seeded.remoteWorkspaceId, 'browser'])
+      // `data-active` follows the owning group's active tab, not the global browser state.
+      .toEqual([
+        remoteHostId,
+        seeded.remoteWorkspaceId,
+        'browser',
+        seeded.remoteGroupId,
+        seeded.remoteTabId
+      ])
     await expect(palette).not.toBeVisible()
     await expect(
       page.locator(`[data-tab-id="${seeded.remoteWorkspaceId}"][data-active="true"]`).first()
@@ -360,16 +371,20 @@ test('routes same-id browser and simulator Cmd-J rows to their owning paired hos
     await palette.locator('[cmdk-item][data-value="browser-page:page-local"]').click()
     await expect
       .poll(() =>
-        page.evaluate(() => {
+        page.evaluate((worktreeId) => {
           const state = window.__store!.getState()
+          const activeGroupId = state.activeGroupIdByWorktree[worktreeId]
           return [
             state.activeWorkspaceExecutionHostId,
             state.activeBrowserTabId,
-            state.activeTabType
+            state.activeTabType,
+            activeGroupId,
+            (state.groupsByWorktree[worktreeId] ?? []).find((group) => group.id === activeGroupId)
+              ?.activeTabId
           ]
-        })
+        }, seeded.sharedWorktreeId)
       )
-      .toEqual(['local', 'browser-local', 'browser'])
+      .toEqual(['local', 'browser-local', 'browser', 'group-local', 'browser-tab-local'])
     await expect(
       page.locator('[data-tab-id="browser-local"][data-active="true"]').first()
     ).toBeVisible()

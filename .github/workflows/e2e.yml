@@ -17,6 +17,11 @@ on:
         description: JSON array of changed specs; empty runs the full suite
         required: false
         type: string
+      changed_e2e_matrix:
+        description: Shard matrix selected from the changed-spec count
+        required: false
+        type: string
+        default: '{"include":[{"shard":"1/1","shard_name":"1-of-1"}]}'
       ssh_source_changed:
         description: '"true" when the PR touches SSH execution source; gates the Docker-SSH lane'
         required: false
@@ -182,13 +187,16 @@ jobs:
           if-no-files-found: ignore
 
   changed-e2e:
-    name: changed e2e specs
+    name: changed e2e specs ${{ matrix.shard_name }}
     needs: [build, prepare-native-cache]
     if: inputs.test_files != ''
     runs-on: ubuntu-latest
     # Why 45: pr.yml now maps SSH source edits onto Docker-backed specs, so this lane can
     # pay a container image build plus ~22 serial SSH tests on top of the changed specs.
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.changed_e2e_matrix) }}
 
     steps:
       - name: Checkout
@@ -242,13 +250,14 @@ jobs:
             E2E_PROJECT_ARGS+=(--project=electron-headful)
           fi
           xvfb-run --auto-servernum env "${E2E_ENV[@]}" \
-            pnpm run test:e2e "${TEST_FILES[@]}" --workers=1 "${E2E_PROJECT_ARGS[@]}"
+            pnpm run test:e2e "${TEST_FILES[@]}" --workers=1 \
+              --shard=${{ matrix.shard }} "${E2E_PROJECT_ARGS[@]}"
 
       - name: Upload Playwright traces
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-traces-changed
+          name: playwright-traces-changed-${{ matrix.shard_name }}
           path: test-results/
           retention-days: 7
           if-no-files-found: ignore

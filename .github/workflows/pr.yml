@@ -766,6 +766,7 @@ jobs:
     outputs:
       should_run: ${{ steps.filter.outputs.should_run }}
       test_files: ${{ steps.filter.outputs.test_files }}
+      changed_e2e_matrix: ${{ steps.filter.outputs.changed_e2e_matrix }}
       ssh_source_changed: ${{ steps.filter.outputs.ssh_source_changed }}
       native_ime_source_changed: ${{ steps.filter.outputs.native_ime_source_changed }}
     steps:
@@ -790,6 +791,14 @@ jobs:
           # authorities, exclusions, and sentinels without evaluating workflow shell.
           TEST_FILES_JSON="$(printf '%s\n' "$CHANGED" | node config/scripts/pr-e2e-source-routing.mjs)"
           echo "test_files=$TEST_FILES_JSON" >> "$GITHUB_OUTPUT"
+          SPEC_COUNT="$(jq 'length' <<<"$TEST_FILES_JSON")"
+          if [ "$SPEC_COUNT" -gt 40 ]; then
+            CHANGED_E2E_MATRIX='{"include":[{"shard":"1/4","shard_name":"1-of-4"},{"shard":"2/4","shard_name":"2-of-4"},{"shard":"3/4","shard_name":"3-of-4"},{"shard":"4/4","shard_name":"4-of-4"}]}'
+          else
+            CHANGED_E2E_MATRIX='{"include":[{"shard":"1/1","shard_name":"1-of-1"}]}'
+          fi
+          echo "changed_e2e_matrix=$CHANGED_E2E_MATRIX" >> "$GITHUB_OUTPUT"
+          echo "Changed E2E shard matrix: $CHANGED_E2E_MATRIX"
           # Why a separate signal: the Docker-SSH lane must trigger on SSH source, not on a
           # spec name surviving in a route's list. Same routes, so the two cannot drift.
           SSH_SOURCE_CHANGED="$(printf '%s\n' "$CHANGED" | node config/scripts/pr-e2e-source-routing.mjs --ssh-source)"
@@ -818,6 +827,7 @@ jobs:
     uses: ./.github/workflows/e2e.yml
     with:
       test_files: ${{ needs.e2e-paths.outputs.test_files }}
+      changed_e2e_matrix: ${{ needs.e2e-paths.outputs.changed_e2e_matrix }}
       ssh_source_changed: ${{ needs.e2e-paths.outputs.ssh_source_changed }}
 
   # Why this is not in verify's needs: it is the first PR-gate run of a harness whose reliability

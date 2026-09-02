@@ -114,7 +114,13 @@ describe('PR E2E gate contract', () => {
     expect(prWorkflow.jobs['e2e-paths'].outputs.test_files).toBe(
       '${{ steps.filter.outputs.test_files }}'
     )
+    expect(prWorkflow.jobs['e2e-paths'].outputs.changed_e2e_matrix).toBe(
+      '${{ steps.filter.outputs.changed_e2e_matrix }}'
+    )
     expect(prWorkflow.jobs.e2e.with.test_files).toBe('${{ needs.e2e-paths.outputs.test_files }}')
+    expect(prWorkflow.jobs.e2e.with.changed_e2e_matrix).toBe(
+      '${{ needs.e2e-paths.outputs.changed_e2e_matrix }}'
+    )
   })
 
   it('enforces every job verify depends on', () => {
@@ -151,10 +157,18 @@ describe('PR E2E gate contract', () => {
     ).toEqual(['tests/e2e/active-view-restart-restore.spec.ts'])
   })
 
-  it('uses one runner for changed specs and keeps full runs sharded', () => {
+  it('shards broad changed-spec selections and keeps full runs sharded', () => {
     expect(e2eWorkflow.jobs.e2e.if).toBe("inputs.test_files == ''")
     expect(e2eWorkflow.jobs['changed-e2e'].if).toBe("inputs.test_files != ''")
-    expect(e2eWorkflow.jobs['changed-e2e'].strategy).toBeUndefined()
+    expect(e2eWorkflow.on.workflow_call.inputs.changed_e2e_matrix.default).toBe(
+      '{"include":[{"shard":"1/1","shard_name":"1-of-1"}]}'
+    )
+    expect(e2eWorkflow.jobs['changed-e2e'].strategy).toEqual({
+      'fail-fast': false,
+      matrix: '${{ fromJSON(inputs.changed_e2e_matrix) }}'
+    })
+    expect(filterStep.run).toContain('if [ "$SPEC_COUNT" -gt 40 ]')
+    expect(filterStep.run).toContain('"shard":"4/4"')
     expect(e2eWorkflow.jobs.e2e.strategy.matrix.include).toEqual(
       Array.from({ length: 14 }, (_, index) => ({
         shard: `${index + 1}/14`,
@@ -170,9 +184,8 @@ describe('PR E2E gate contract', () => {
     expect(changedRun.run).toContain('if [ "${#TEST_FILES[@]}" -eq 0 ]')
     expect(changedRun.run).toContain('grep -l \'@headful\' "${TEST_FILES[@]}"')
     expect(changedRun.run).toContain('E2E_PROJECT_ARGS+=(--project=electron-headful)')
-    expect(changedRun.run).toContain(
-      'pnpm run test:e2e "${TEST_FILES[@]}" --workers=1 "${E2E_PROJECT_ARGS[@]}"'
-    )
+    expect(changedRun.run).toContain('pnpm run test:e2e "${TEST_FILES[@]}" --workers=1')
+    expect(changedRun.run).toContain('--shard=${{ matrix.shard }} "${E2E_PROJECT_ARGS[@]}"')
     expect(playwrightConfig).toContain('retries: 0')
   })
 
