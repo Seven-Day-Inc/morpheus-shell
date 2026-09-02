@@ -1,6 +1,6 @@
 /* oxlint-disable react-doctor/no-adjust-state-on-prop-change -- Why: mobile browser state mirrors a remote desktop screencast session and CDP dialogs, which are external systems that cannot be derived during render. */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { AppState, type Image, type View } from 'react-native'
+import { AppState, type View } from 'react-native'
 import type { RpcClient } from '../transport/rpc-client'
 import type {
   BrowserScreencastFrame,
@@ -12,17 +12,23 @@ import {
   getInitialMobileBrowserViewMode,
   saveMobileBrowserViewMode
 } from './mobile-browser-view-mode-state'
-import type { BrowserTouchLayout, BrowserZoomState } from './browser-touch-geometry'
+import {
+  clampBrowserZoomState,
+  type BrowserTouchLayout,
+  type BrowserZoomState
+} from './browser-touch-geometry'
 import {
   clearCachedBrowserFramesForWorktree,
   makeBrowserFrameCacheKey,
+  MAX_ZOOM,
+  MIN_ZOOM,
   peekCachedBrowserFrame,
-  type FrameLayer,
-  type PinchGesture
+  type FrameLayer
 } from './mobile-browser-frame-state'
 import { displayBrowserUrl, normalizeBrowserUrl } from './browser-url'
 import { resolveMobileBrowserAddressSync } from './mobile-browser-address-sync'
 import { MobileBrowserPaneView } from './MobileBrowserPaneView'
+import type { BrowserFrameImageHandle } from './MobileBrowserFrameImage'
 import { useMobileBrowserInteractions } from './use-mobile-browser-interactions'
 import { useMobileBrowserPaneLayers } from './use-mobile-browser-pane-layers'
 import { useMobileBrowserStream } from './use-mobile-browser-stream'
@@ -48,13 +54,6 @@ type MobileBrowserPaneProps = {
   keyboardLift: number
   bottomInset: number
   onToast: (message: string, durationMs?: number) => void
-}
-
-type PanGesture = {
-  x: number
-  y: number
-  offsetX: number
-  offsetY: number
 }
 
 type BrowserDialogState = {
@@ -103,7 +102,9 @@ export function MobileBrowserPane({
   )
   const frameUriRef = useRef<string | null>(cachedInitialFrame?.uri ?? null)
   const frameMountedRef = useRef(cachedInitialFrame !== null)
-  const browserImageRefs = useRef<[Image | null, Image | null]>([null, null])
+  const browserImageRefs = useRef<[BrowserFrameImageHandle | null, BrowserFrameImageHandle | null]>(
+    [null, null]
+  )
   const browserLayerRefs = useRef<[View | null, View | null]>([null, null])
   const pendingFrameLayerRef = useRef<FrameLayer | null>(null)
   const visibleFrameLayerRef = useRef<FrameLayer>(0)
@@ -116,41 +117,13 @@ export function MobileBrowserPane({
   const frameThrottleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dialogRef = useRef<BrowserDialogState | null>(null)
   const lastStreamCacheKeyRef = useRef<string | null>(cacheKey)
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const startPointRef = useRef<{ x: number; y: number; t: number } | null>(null)
-  const scrollingRef = useRef(false)
   const zoomRef = useRef<BrowserZoomState>(DEFAULT_ZOOM)
-  const pinchRef = useRef<PinchGesture | null>(null)
-  const panRef = useRef<PanGesture | null>(null)
   const lastZoomResetUrlRef = useRef(tab.url || 'about:blank')
 
-  const clearLongPressTimer = useCallback(() => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current)
-      longPressTimerRef.current = null
-    }
-  }, [])
-
-  const setRootViewRef = useCallback(
-    (node: View | null) => {
-      // Why: long-press right-click timers belong to this responder surface;
-      // clearing from ref cleanup preserves the same unmount boundary.
-      if (node === null) {
-        clearLongPressTimer()
-      }
-    },
-    [clearLongPressTimer]
-  )
-
   const resetBrowserZoomState = useCallback(() => {
-    clearLongPressTimer()
-    pinchRef.current = null
-    panRef.current = null
-    scrollingRef.current = false
-    startPointRef.current = null
     zoomRef.current = DEFAULT_ZOOM
     setZoom(DEFAULT_ZOOM)
-  }, [clearLongPressTimer])
+  }, [])
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
@@ -223,13 +196,29 @@ export function MobileBrowserPane({
     setError,
     setFrameMetadata,
     setFrameUri,
-    setZoom,
     streamGenerationRef,
     tab,
     visibleFrameLayerRef,
-    worktreeId,
-    zoomRef
+    worktreeId
   })
+
+  useEffect(() => {
+    if (!frameGeometry) {
+      return
+    }
+    const current = zoomRef.current
+    const next = clampBrowserZoomState(current, frameGeometry, MIN_ZOOM, MAX_ZOOM)
+    if (
+      next.scale === current.scale &&
+      next.offsetX === current.offsetX &&
+      next.offsetY === current.offsetY
+    ) {
+      return
+    }
+    // Why: layout changes can shrink the legal pan range for the current zoom.
+    zoomRef.current = next
+    setZoom(next)
+  }, [frameGeometry])
 
   const navigateToAddress = useCallback(async () => {
     const url = normalizeBrowserUrl(addressValue)
@@ -249,31 +238,30 @@ export function MobileBrowserPane({
     }
   }, [addressValue, resetBrowserZoomState, sendBrowserRequest])
 
-  const { panResponder, sendDialogCommand, sendKeyboardText, sendKeypress, togglePointerModifier } =
-    useMobileBrowserInteractions({
-      clearLongPressTimer,
-      client,
-      dialogRef,
-      frameGeometry,
-      frameMetadataRef,
-      keyboardValue,
-      layoutRef,
-      longPressTimerRef,
-      onToast,
-      pageParams,
-      panRef,
-      pinchRef,
-      pointerModifiers,
-      sendBrowserRequest,
-      scrollingRef,
-      startPointRef,
-      setDialog,
-      setError,
-      setKeyboardValue,
-      setPointerModifiers,
-      setZoom,
-      zoomRef
-    })
+  const {
+    browserGesture,
+    sendDialogCommand,
+    sendKeyboardText,
+    sendKeypress,
+    togglePointerModifier
+  } = useMobileBrowserInteractions({
+    client,
+    dialogRef,
+    frameGeometry,
+    frameMetadataRef,
+    keyboardValue,
+    layoutRef,
+    onToast,
+    pageParams,
+    pointerModifiers,
+    sendBrowserRequest,
+    setDialog,
+    setError,
+    setKeyboardValue,
+    setPointerModifiers,
+    setZoom,
+    zoomRef
+  })
 
   const {
     browserLayerRef,
@@ -330,6 +318,7 @@ export function MobileBrowserPane({
       addressFocused={addressFocused}
       addressValue={addressValue}
       bottomInset={bottomInset}
+      browserGesture={browserGesture}
       browserLayerRef={browserLayerRef}
       browserViewMode={browserViewMode}
       busy={busy}
@@ -347,7 +336,6 @@ export function MobileBrowserPane({
       keyboardValue={keyboardValue}
       layoutRef={layoutRef}
       navigateToAddress={navigateToAddress}
-      panResponder={panResponder}
       pointerModifiers={pointerModifiers}
       reloadPage={reloadPage}
       renderedFrameSource={renderedFrameSource}
@@ -359,7 +347,6 @@ export function MobileBrowserPane({
       setAddressValue={setAddressValue}
       setKeyboardValue={setKeyboardValue}
       setLayout={setLayout}
-      setRootViewRef={setRootViewRef}
       tab={tab}
       togglePointerModifier={togglePointerModifier}
       zoom={zoom}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, type Dispatch, type SetStateAction } from 'react'
-import { PixelRatio, type Image, type View } from 'react-native'
+import { PixelRatio, type View } from 'react-native'
 import type { RpcClient } from '../transport/rpc-client'
 import type {
   BrowserScreencastFrame,
@@ -10,19 +10,13 @@ import {
   type MobileBrowserViewMode
 } from './browser-screencast-request'
 import {
-  MAX_ZOOM,
-  MIN_ZOOM,
   getCachedBrowserFrame,
   updateBrowserLayerVisibility,
   type FrameLayer
 } from './mobile-browser-frame-state'
-import {
-  clampBrowserZoomState,
-  computeBrowserFrameGeometry,
-  type BrowserTouchLayout,
-  type BrowserZoomState
-} from './browser-touch-geometry'
+import { computeBrowserFrameGeometry, type BrowserTouchLayout } from './browser-touch-geometry'
 import type { MobileBrowserTab } from './MobileBrowserPane'
+import type { BrowserFrameImageHandle } from './MobileBrowserFrameImage'
 import {
   handleBrowserScreencastEvent,
   type BrowserDialogState,
@@ -35,7 +29,7 @@ type PendingFrame = { frame: BrowserScreencastFrame; cacheKey: string }
 
 type MobileBrowserStreamArgs = {
   appActive: boolean
-  browserImageRefs: { current: [Image | null, Image | null] }
+  browserImageRefs: { current: [BrowserFrameImageHandle | null, BrowserFrameImageHandle | null] }
   browserLayerRefs: { current: [View | null, View | null] }
   browserViewMode: MobileBrowserViewMode
   busyRef: { current: boolean }
@@ -60,12 +54,10 @@ type MobileBrowserStreamArgs = {
   setError: Dispatch<SetStateAction<string | null>>
   setFrameMetadata: Dispatch<SetStateAction<BrowserScreencastFrameMetadata | null>>
   setFrameUri: Dispatch<SetStateAction<string | null>>
-  setZoom: Dispatch<SetStateAction<BrowserZoomState>>
   streamGenerationRef: { current: number }
   tab: MobileBrowserTab
   visibleFrameLayerRef: { current: FrameLayer }
   worktreeId: string
-  zoomRef: { current: BrowserZoomState }
 }
 
 export function useMobileBrowserStream(args: MobileBrowserStreamArgs) {
@@ -96,12 +88,10 @@ export function useMobileBrowserStream(args: MobileBrowserStreamArgs) {
     setError,
     setFrameMetadata,
     setFrameUri,
-    setZoom,
     streamGenerationRef,
     tab,
     visibleFrameLayerRef,
-    worktreeId,
-    zoomRef
+    worktreeId
   } = args
 
   const { pageParams, sendBrowserRequest } = useMobileBrowserRequest({
@@ -138,26 +128,6 @@ export function useMobileBrowserStream(args: MobileBrowserStreamArgs) {
     () => computeBrowserFrameGeometry(layout, frameMetadata),
     [frameMetadata, layout]
   )
-
-  useEffect(() => {
-    if (!frameGeometry) {
-      return
-    }
-    setZoom((current) => {
-      const next = clampBrowserZoomState(current, frameGeometry, MIN_ZOOM, MAX_ZOOM)
-      if (
-        next.scale === current.scale &&
-        next.offsetX === current.offsetX &&
-        next.offsetY === current.offsetY
-      ) {
-        return current
-      }
-      // Why: rotation/layout changes can shrink the legal pan range while the
-      // current zoom state still points at the previous viewport geometry.
-      zoomRef.current = next
-      return next
-    })
-  }, [frameGeometry])
 
   useEffect(() => {
     streamGenerationRef.current += 1
@@ -269,13 +239,30 @@ export function useMobileBrowserStream(args: MobileBrowserStreamArgs) {
   }, [
     appActive,
     applyFrameThrottled,
+    browserLayerRefs,
+    busyRef,
+    cacheKey,
     clearFrameThrottle,
     client,
+    frameMetadataRef,
+    frameMountedRef,
+    frameUriRef,
+    lastAppliedFrameAtRef,
+    lastStreamCacheKeyRef,
+    lastZoomResetUrlRef,
+    pendingFrameLayerRef,
     resetBrowserZoomState,
     screencastSupported,
+    setAddressValue,
+    setBusy,
+    setDialog,
+    setError,
+    setFrameMetadata,
+    setFrameUri,
     streamRequest,
-    cacheKey,
+    streamGenerationRef,
     tab.browserPageId,
+    visibleFrameLayerRef,
     worktreeId
   ])
 

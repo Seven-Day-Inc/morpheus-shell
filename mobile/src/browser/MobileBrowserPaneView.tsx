@@ -1,18 +1,18 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
+import { GestureDetector, type ComposedGesture } from 'react-native-gesture-handler'
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   Text,
   TextInput,
   View,
-  type PanResponderInstance,
   type StyleProp,
   type ViewStyle
 } from 'react-native'
 import { ArrowUp, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react-native'
 import { colors } from '../theme/mobile-theme'
 import { MobileBrowserAddressField } from './MobileBrowserAddressField'
+import { MobileBrowserFrameImage, type BrowserFrameImageHandle } from './MobileBrowserFrameImage'
 import { MobileBrowserKeyRow } from './MobileBrowserKeyRow'
 import {
   MobileBrowserPointerModifiers,
@@ -34,6 +34,7 @@ type MobileBrowserPaneViewProps = {
   addressFocused: boolean
   addressValue: string
   bottomInset: number
+  browserGesture: ComposedGesture
   browserLayerRef: (layer: FrameLayer) => (view: View | null) => void
   browserViewMode: MobileBrowserViewMode
   busy: boolean
@@ -43,7 +44,7 @@ type MobileBrowserPaneViewProps = {
   frameGeometry: BrowserFrameGeometry | null
   frameLayerErrorHandler: (layer: FrameLayer) => () => void
   frameLayerLoadHandler: (layer: FrameLayer) => () => void
-  frameLayerRef: (layer: FrameLayer) => (image: Image | null) => void
+  frameLayerRef: (layer: FrameLayer) => (image: BrowserFrameImageHandle | null) => void
   frameLayerStyle: (layer: FrameLayer) => StyleProp<ViewStyle>
   goBack: () => void
   goForward: () => void
@@ -51,7 +52,6 @@ type MobileBrowserPaneViewProps = {
   keyboardValue: string
   layoutRef: RefObject<BrowserTouchLayout | null>
   navigateToAddress: () => Promise<void>
-  panResponder: PanResponderInstance
   pointerModifiers: BrowserPointerModifier[]
   reloadPage: () => void
   renderedFrameSource: { uri: string } | null
@@ -63,7 +63,6 @@ type MobileBrowserPaneViewProps = {
   setAddressValue: Dispatch<SetStateAction<string>>
   setKeyboardValue: Dispatch<SetStateAction<string>>
   setLayout: Dispatch<SetStateAction<BrowserTouchLayout | null>>
-  setRootViewRef: (view: View | null) => void
   tab: MobileBrowserTab
   togglePointerModifier: (modifier: BrowserPointerModifier) => void
   zoom: BrowserZoomState
@@ -74,6 +73,7 @@ export function MobileBrowserPaneView(props: MobileBrowserPaneViewProps) {
     addressFocused,
     addressValue,
     bottomInset,
+    browserGesture,
     browserLayerRef,
     browserViewMode,
     busy,
@@ -91,7 +91,6 @@ export function MobileBrowserPaneView(props: MobileBrowserPaneViewProps) {
     keyboardValue,
     layoutRef,
     navigateToAddress,
-    panResponder,
     pointerModifiers,
     reloadPage,
     renderedFrameSource,
@@ -103,13 +102,12 @@ export function MobileBrowserPaneView(props: MobileBrowserPaneViewProps) {
     setAddressValue,
     setKeyboardValue,
     setLayout,
-    setRootViewRef,
     tab,
     togglePointerModifier,
     zoom
   } = props
   return (
-    <View ref={setRootViewRef} style={styles.root}>
+    <View style={styles.root}>
       <View style={styles.toolbar}>
         <MobileBrowserToolbarIconButton
           disabled={controlsDisabled || !tab.canGoBack}
@@ -148,136 +146,137 @@ export function MobileBrowserPaneView(props: MobileBrowserPaneViewProps) {
         />
       </View>
 
-      <View
-        style={styles.viewport}
-        onLayout={(event) => {
-          const next = {
-            width: event.nativeEvent.layout.width,
-            height: event.nativeEvent.layout.height
-          }
-          const current = layoutRef.current
-          if (current && current.width === next.width && current.height === next.height) {
-            return
-          }
-          layoutRef.current = next
-          setLayout(next)
-        }}
-        {...panResponder.panHandlers}
-      >
-        {renderedFrameSource ? (
-          <View style={styles.browserImageHost}>
-            {frameGeometry ? (
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.browserZoomOffset,
-                  {
-                    width: frameGeometry.renderedWidth,
-                    height: frameGeometry.renderedHeight,
-                    transform: [{ translateX: zoom.offsetX }, { translateY: zoom.offsetY }]
-                  }
-                ]}
-              >
+      <GestureDetector gesture={browserGesture}>
+        <View
+          style={styles.viewport}
+          onLayout={(event) => {
+            const next = {
+              width: event.nativeEvent.layout.width,
+              height: event.nativeEvent.layout.height
+            }
+            const current = layoutRef.current
+            if (current && current.width === next.width && current.height === next.height) {
+              return
+            }
+            layoutRef.current = next
+            setLayout(next)
+          }}
+        >
+          {renderedFrameSource ? (
+            <View style={styles.browserImageHost}>
+              {frameGeometry ? (
                 <View
+                  pointerEvents="none"
                   style={[
-                    styles.browserFrameBox,
+                    styles.browserZoomOffset,
                     {
                       width: frameGeometry.renderedWidth,
                       height: frameGeometry.renderedHeight,
-                      transform: [{ scale: zoom.scale }]
+                      transform: [{ translateX: zoom.offsetX }, { translateY: zoom.offsetY }]
                     }
                   ]}
                 >
-                  {([0, 1] as const).map((layer) => (
-                    <View
-                      key={layer}
-                      ref={browserLayerRef(layer)}
-                      pointerEvents="none"
-                      style={frameLayerStyle(layer)}
-                    >
-                      <Image
-                        ref={frameLayerRef(layer)}
-                        source={renderedFrameSource}
-                        resizeMode="stretch"
-                        fadeDuration={0}
-                        onLoad={frameLayerLoadHandler(layer)}
-                        onError={frameLayerErrorHandler(layer)}
-                        style={[
-                          styles.browserImage,
-                          {
-                            width: frameGeometry.renderedWidth,
-                            height: frameGeometry.renderedHeight
-                          }
-                        ]}
-                      />
-                    </View>
-                  ))}
+                  <View
+                    style={[
+                      styles.browserFrameBox,
+                      {
+                        width: frameGeometry.renderedWidth,
+                        height: frameGeometry.renderedHeight,
+                        transform: [{ scale: zoom.scale }]
+                      }
+                    ]}
+                  >
+                    {([0, 1] as const).map((layer) => (
+                      <View
+                        key={layer}
+                        ref={browserLayerRef(layer)}
+                        pointerEvents="none"
+                        style={frameLayerStyle(layer)}
+                      >
+                        <MobileBrowserFrameImage
+                          ref={frameLayerRef(layer)}
+                          initialSource={renderedFrameSource}
+                          contentFit="fill"
+                          onLoad={frameLayerLoadHandler(layer)}
+                          onError={frameLayerErrorHandler(layer)}
+                          style={[
+                            styles.browserImage,
+                            {
+                              width: frameGeometry.renderedWidth,
+                              height: frameGeometry.renderedHeight
+                            }
+                          ]}
+                        />
+                      </View>
+                    ))}
+                  </View>
                 </View>
-              </View>
-            ) : (
-              ([0, 1] as const).map((layer) => (
-                <View
-                  key={layer}
-                  ref={browserLayerRef(layer)}
-                  pointerEvents="none"
-                  style={frameLayerStyle(layer)}
-                >
-                  <Image
-                    ref={frameLayerRef(layer)}
-                    source={renderedFrameSource}
-                    resizeMode="contain"
-                    fadeDuration={0}
-                    onLoad={frameLayerLoadHandler(layer)}
-                    onError={frameLayerErrorHandler(layer)}
-                    style={styles.browserImageFill}
-                  />
-                </View>
-              ))
-            )}
-          </View>
-        ) : null}
-        {!renderedFrameSource || busy || error ? (
-          <View pointerEvents="none" style={styles.overlay}>
-            {/* Why: a stream can report ready and then deliver no frames, so key the
+              ) : (
+                ([0, 1] as const).map((layer) => (
+                  <View
+                    key={layer}
+                    ref={browserLayerRef(layer)}
+                    pointerEvents="none"
+                    style={frameLayerStyle(layer)}
+                  >
+                    <MobileBrowserFrameImage
+                      ref={frameLayerRef(layer)}
+                      initialSource={renderedFrameSource}
+                      contentFit="contain"
+                      onLoad={frameLayerLoadHandler(layer)}
+                      onError={frameLayerErrorHandler(layer)}
+                      style={styles.browserImageFill}
+                    />
+                  </View>
+                ))
+              )}
+            </View>
+          ) : null}
+          {!renderedFrameSource || busy || error ? (
+            <View pointerEvents="none" style={styles.overlay}>
+              {/* Why: a stream can report ready and then deliver no frames, so key the
                 indicator off actually having pixels or it clears into a blank pane. */}
-            {busy || (!renderedFrameSource && !error) ? (
-              <ActivityIndicator size="small" color={colors.textSecondary} />
-            ) : null}
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          </View>
-        ) : null}
-        {dialog ? (
-          <View style={styles.dialogOverlay}>
-            <View style={styles.dialogCard}>
-              <Text style={styles.dialogTitle}>Browser Dialog</Text>
-              <Text style={styles.dialogMessage}>{dialog.message}</Text>
-              <View style={styles.dialogActions}>
-                {dialog.dialogType !== 'alert' ? (
+              {busy || (!renderedFrameSource && !error) ? (
+                <ActivityIndicator size="small" color={colors.textSecondary} />
+              ) : null}
+              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            </View>
+          ) : null}
+          {dialog ? (
+            <View style={styles.dialogOverlay}>
+              <View style={styles.dialogCard}>
+                <Text style={styles.dialogTitle}>Browser Dialog</Text>
+                <Text style={styles.dialogMessage}>{dialog.message}</Text>
+                <View style={styles.dialogActions}>
+                  {dialog.dialogType !== 'alert' ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.dialogButton,
+                        pressed && styles.dialogButtonPressed
+                      ]}
+                      onPress={() => void sendDialogCommand('browser.dialogDismiss')}
+                    >
+                      <Text style={styles.dialogButtonText}>Cancel</Text>
+                    </Pressable>
+                  ) : null}
                   <Pressable
                     style={({ pressed }) => [
                       styles.dialogButton,
+                      styles.dialogButtonPrimary,
                       pressed && styles.dialogButtonPressed
                     ]}
-                    onPress={() => void sendDialogCommand('browser.dialogDismiss')}
+                    onPress={() => void sendDialogCommand('browser.dialogAccept')}
                   >
-                    <Text style={styles.dialogButtonText}>Cancel</Text>
+                    <Text style={[styles.dialogButtonText, styles.dialogButtonPrimaryText]}>
+                      OK
+                    </Text>
                   </Pressable>
-                ) : null}
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.dialogButton,
-                    styles.dialogButtonPrimary,
-                    pressed && styles.dialogButtonPressed
-                  ]}
-                  onPress={() => void sendDialogCommand('browser.dialogAccept')}
-                >
-                  <Text style={[styles.dialogButtonText, styles.dialogButtonPrimaryText]}>OK</Text>
-                </Pressable>
+                </View>
               </View>
             </View>
-          </View>
-        ) : null}
-      </View>
+          ) : null}
+        </View>
+      </GestureDetector>
 
       <View
         style={[

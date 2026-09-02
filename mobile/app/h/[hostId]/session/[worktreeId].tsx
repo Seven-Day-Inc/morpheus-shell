@@ -1559,8 +1559,10 @@ export default function SessionScreen() {
       getTerminalRef,
       markNativeChatInputLeaseReady,
       scheduleDelayedAction,
+      showNativeChatRef,
       showToast,
-      signalTerminalInventoryRecovery
+      signalTerminalInventoryRecovery,
+      unsubscribeTerminal
     ]
   )
 
@@ -1722,6 +1724,7 @@ export default function SessionScreen() {
       defaultTerminalHandlesToLiveInput,
       nativeChatStream,
       pruneTerminalHandlesFromLiveInput,
+      showNativeChatRef,
       subscribeToTerminal,
       terminalInventoryRequest,
       unsubscribeTerminal
@@ -3461,15 +3464,16 @@ export default function SessionScreen() {
     }
   }
 
-  const accessoryRepeatRef = useRef(
-    createTerminalAccessoryRepeatController<ReturnType<typeof createTerminalLiveAccessoryInput>>()
-  )
+  const [accessoryRepeatRef] = useState(() => ({
+    current:
+      createTerminalAccessoryRepeatController<ReturnType<typeof createTerminalLiveAccessoryInput>>()
+  }))
   // Why: the current callback observes reconnect state while the sender pins the press to its original terminal.
   const handleAccessoryKeyRef = useRef(handleAccessoryKey)
   handleAccessoryKeyRef.current = handleAccessoryKey
   const stopAccessoryRepeat = useCallback(() => {
     accessoryRepeatRef.current.stop()
-  }, [])
+  }, [accessoryRepeatRef])
   const startAccessoryRepeat = useCallback(
     (input: ReturnType<typeof createTerminalLiveAccessoryInput>) => {
       // Why: a held repeat must not resume through a replacement client or connection.
@@ -3491,7 +3495,7 @@ export default function SessionScreen() {
         )
       )
     },
-    []
+    [accessoryRepeatRef]
   )
   const setMobileSessionRootRef = useCallback(
     (node: View | null): void => {
@@ -3514,7 +3518,8 @@ export default function SessionScreen() {
       clearDelayedActionTimers,
       clearSessionTabActionSheetKeyboardListener,
       clearTerminalCache,
-      clearToastHideTimer
+      clearToastHideTimer,
+      accessoryRepeatRef
     ]
   )
 

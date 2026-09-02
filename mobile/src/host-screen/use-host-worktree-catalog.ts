@@ -105,7 +105,12 @@ export function useHostWorktreeCatalog(args: {
           setSleptIds((prev) => retainLiveSleptWorktreeIdentities(prev, confirmed))
 
           // Sync pin state from server so desktop-initiated pins reflect without relying on stale AsyncStorage.
-          const serverPinned = new Set(confirmed.filter((w) => w.isPinned).map((w) => w.worktreeId))
+          const serverPinned = new Set<string>()
+          for (const worktree of confirmed) {
+            if (worktree.isPinned) {
+              serverPinned.add(worktree.worktreeId)
+            }
+          }
           setPinnedIds((prev) => {
             if (serverPinned.size === prev.size && [...serverPinned].every((id) => prev.has(id))) {
               return prev
@@ -125,7 +130,22 @@ export function useHostWorktreeCatalog(args: {
         fetchWorktreesInFlightRef.current = false
       }
     },
-    [client, connState, hostId]
+    [
+      client,
+      clientRef,
+      connState,
+      fetchWorktreesInFlightRef,
+      hostId,
+      newWorktreeModalVisibleRef,
+      setCatalogError,
+      setLastKnownWorktrees,
+      setOptimisticActiveWorktreeIdentity,
+      setPinnedIds,
+      setSleptIds,
+      setWorktrees,
+      setWorktreesLoaded,
+      worktreeCatalogRef
+    ]
   )
 
   useFocusEffect(
@@ -133,7 +153,7 @@ export function useHostWorktreeCatalog(args: {
       // Why: focus nudges reconnect and probes a possibly half-open socket; empty deps fire per focus, not per state flip (which defeats backoff).
       // 'focus' keeps a healthy relay green — probe, never suspend (S2 grey blink).
       clientRef.current?.notifyForeground('focus')
-    }, [])
+    }, [clientRef])
   )
 
   const startWorktreeRefresh = useCallback(() => {

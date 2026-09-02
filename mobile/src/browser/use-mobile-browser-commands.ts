@@ -101,7 +101,7 @@ export function useMobileBrowserCommands(args: MobileBrowserCommandArgs) {
         flushPendingWheelCommand()
       }
     })()
-  }, [client])
+  }, [client, setError])
 
   const sendPointerClick = useCallback(
     async (point: BrowserPoint, button: 'left' | 'right') => {
@@ -151,16 +151,28 @@ export function useMobileBrowserCommands(args: MobileBrowserCommandArgs) {
         // actionable failures still surface through navigation/stream errors.
       }
     },
-    [client, pageParams, pointerModifiers, sendBrowserRequest]
+    [
+      client,
+      frameMetadataRef,
+      layoutRef,
+      pageParams,
+      pointerModifiers,
+      sendBrowserRequest,
+      setError,
+      zoomRef
+    ]
   )
 
-  const togglePointerModifier = useCallback((modifier: BrowserPointerModifier) => {
-    setPointerModifiers((current) =>
-      current.includes(modifier)
-        ? current.filter((candidate) => candidate !== modifier)
-        : [...current, modifier]
-    )
-  }, [])
+  const togglePointerModifier = useCallback(
+    (modifier: BrowserPointerModifier) => {
+      setPointerModifiers((current) =>
+        current.includes(modifier)
+          ? current.filter((candidate) => candidate !== modifier)
+          : [...current, modifier]
+      )
+    },
+    [setPointerModifiers]
+  )
 
   const sendWheel = useCallback(
     (point: BrowserPoint, screenDx: number, screenDy: number, gestureId: number) => {
@@ -191,18 +203,21 @@ export function useMobileBrowserCommands(args: MobileBrowserCommandArgs) {
           : { base, point, gestureId, ...delta }
       flushPendingWheelCommand()
     },
-    [client, flushPendingWheelCommand, pageParams]
+    [client, flushPendingWheelCommand, frameMetadataRef, layoutRef, pageParams, zoomRef]
   )
 
-  const mapTouchPoint = useCallback((locationX: number, locationY: number): BrowserPoint | null => {
-    return mapScreenToBrowserPoint(
-      locationX,
-      locationY,
-      layoutRef.current,
-      frameMetadataRef.current,
-      zoomRef.current
-    )
-  }, [])
+  const mapTouchPoint = useCallback(
+    (locationX: number, locationY: number): BrowserPoint | null => {
+      return mapScreenToBrowserPoint(
+        locationX,
+        locationY,
+        layoutRef.current,
+        frameMetadataRef.current,
+        zoomRef.current
+      )
+    },
+    [frameMetadataRef, layoutRef, zoomRef]
+  )
 
   const sendKeyboardText = useCallback(async () => {
     const text = keyboardValue
@@ -220,7 +235,7 @@ export function useMobileBrowserCommands(args: MobileBrowserCommandArgs) {
     } else {
       setKeyboardValue(text)
     }
-  }, [keyboardValue, onToast, sendBrowserRequest])
+  }, [keyboardValue, onToast, sendBrowserRequest, setKeyboardValue])
 
   const sendKeypress = useCallback(
     async (key: string) => {
@@ -234,7 +249,7 @@ export function useMobileBrowserCommands(args: MobileBrowserCommandArgs) {
       setDialog(null)
       await sendBrowserRequest(method, {}, { suppressError: true, timeoutMs: 5_000 })
     },
-    [sendBrowserRequest]
+    [sendBrowserRequest, setDialog]
   )
   return {
     mapTouchPoint,

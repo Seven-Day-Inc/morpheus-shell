@@ -1,10 +1,10 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react'
-import type { Image } from 'react-native'
 import type {
   BrowserScreencastFrame,
   BrowserScreencastFrameMetadata
 } from '../transport/browser-screencast-protocol'
 import { MOBILE_BROWSER_FRAME_MIN_INTERVAL_MS } from './browser-screencast-request'
+import type { BrowserFrameImageHandle } from './MobileBrowserFrameImage'
 import {
   browserFrameMetadataEqual,
   cacheBrowserFrame,
@@ -15,7 +15,7 @@ import {
 
 type PendingFrame = { frame: BrowserScreencastFrame; cacheKey: string }
 type BrowserFrameApplyArgs = {
-  browserImageRefs: { current: [Image | null, Image | null] }
+  browserImageRefs: { current: [BrowserFrameImageHandle | null, BrowserFrameImageHandle | null] }
   busyRef: { current: boolean }
   frameMetadataRef: { current: BrowserScreencastFrameMetadata | null }
   frameMountedRef: { current: boolean }
@@ -45,37 +45,54 @@ export function useMobileBrowserFrameApply(args: BrowserFrameApplyArgs) {
     setFrameUri,
     visibleFrameLayerRef
   } = args
-  const applyFrame = useCallback((frame: BrowserScreencastFrame, frameCacheKey: string): void => {
-    if (!browserFrameMetadataEqual(frameMetadataRef.current, frame.metadata)) {
-      frameMetadataRef.current = frame.metadata
-      setFrameMetadata(frame.metadata)
-    }
-    const nextFrameUri = createBrowserFrameDataUri(frame)
-    cacheBrowserFrame(frameCacheKey, { uri: nextFrameUri, metadata: frame.metadata })
-    if (!frameMountedRef.current) {
-      frameUriRef.current = nextFrameUri
-      frameMountedRef.current = true
-      setFrameUri(nextFrameUri)
-      updateBrowserImageSource(browserImageRefs.current[0], nextFrameUri)
-    } else if (pendingFrameLayerRef.current === null) {
-      // Why: decode the next frame offscreen and keep the previous layer visible
-      // until onLoad; replacing the visible Image directly flashes black.
-      const nextLayer: FrameLayer = visibleFrameLayerRef.current === 0 ? 1 : 0
-      frameUriRef.current = nextFrameUri
-      pendingFrameLayerRef.current = nextLayer
-      updateBrowserImageSource(browserImageRefs.current[nextLayer], nextFrameUri)
-    } else {
-      // Why: popovers/menus can settle in one final frame while the previous
-      // offscreen frame is still decoding. Keep the hidden layer pointed at
-      // the newest frame instead of dropping the final static state.
-      frameUriRef.current = nextFrameUri
-      updateBrowserImageSource(browserImageRefs.current[pendingFrameLayerRef.current], nextFrameUri)
-    }
-    if (busyRef.current) {
-      busyRef.current = false
-      setBusy(false)
-    }
-  }, [])
+  const applyFrame = useCallback(
+    (frame: BrowserScreencastFrame, frameCacheKey: string): void => {
+      if (!browserFrameMetadataEqual(frameMetadataRef.current, frame.metadata)) {
+        frameMetadataRef.current = frame.metadata
+        setFrameMetadata(frame.metadata)
+      }
+      const nextFrameUri = createBrowserFrameDataUri(frame)
+      cacheBrowserFrame(frameCacheKey, { uri: nextFrameUri, metadata: frame.metadata })
+      if (!frameMountedRef.current) {
+        frameUriRef.current = nextFrameUri
+        frameMountedRef.current = true
+        setFrameUri(nextFrameUri)
+        updateBrowserImageSource(browserImageRefs.current[0], nextFrameUri)
+      } else if (pendingFrameLayerRef.current === null) {
+        // Why: decode the next frame offscreen and keep the previous layer visible
+        // until onLoad; replacing the visible Image directly flashes black.
+        const nextLayer: FrameLayer = visibleFrameLayerRef.current === 0 ? 1 : 0
+        frameUriRef.current = nextFrameUri
+        pendingFrameLayerRef.current = nextLayer
+        updateBrowserImageSource(browserImageRefs.current[nextLayer], nextFrameUri)
+      } else {
+        // Why: popovers/menus can settle in one final frame while the previous
+        // offscreen frame is still decoding. Keep the hidden layer pointed at
+        // the newest frame instead of dropping the final static state.
+        frameUriRef.current = nextFrameUri
+        updateBrowserImageSource(
+          browserImageRefs.current[pendingFrameLayerRef.current],
+          nextFrameUri
+        )
+      }
+      if (busyRef.current) {
+        busyRef.current = false
+        setBusy(false)
+      }
+    },
+    [
+      browserImageRefs,
+      busyRef,
+      frameMetadataRef,
+      frameMountedRef,
+      frameUriRef,
+      pendingFrameLayerRef,
+      setBusy,
+      setFrameMetadata,
+      setFrameUri,
+      visibleFrameLayerRef
+    ]
+  )
 
   const clearFrameThrottle = useCallback(() => {
     pendingThrottledFrameRef.current = null
@@ -83,7 +100,7 @@ export function useMobileBrowserFrameApply(args: BrowserFrameApplyArgs) {
       clearTimeout(frameThrottleTimerRef.current)
       frameThrottleTimerRef.current = null
     }
-  }, [])
+  }, [frameThrottleTimerRef, pendingThrottledFrameRef])
 
   const applyFrameThrottled = useCallback(
     (frame: BrowserScreencastFrame, frameCacheKey: string): void => {
@@ -116,7 +133,13 @@ export function useMobileBrowserFrameApply(args: BrowserFrameApplyArgs) {
         Math.max(0, MOBILE_BROWSER_FRAME_MIN_INTERVAL_MS - elapsed)
       )
     },
-    [applyFrame, clearFrameThrottle]
+    [
+      applyFrame,
+      clearFrameThrottle,
+      frameThrottleTimerRef,
+      lastAppliedFrameAtRef,
+      pendingThrottledFrameRef
+    ]
   )
   return { applyFrameThrottled, clearFrameThrottle }
 }

@@ -6,7 +6,7 @@ vi.mock('react-native', () => ({
 }))
 
 import { colors } from '../theme/mobile-theme'
-import { statusDotColor } from './StatusDot'
+import { statusDotColor } from './status-dot-color'
 
 describe('statusDotColor', () => {
   it('keeps Relay progress amber when the raw state is disconnected', () => {

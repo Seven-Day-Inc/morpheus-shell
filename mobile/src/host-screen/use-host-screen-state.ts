@@ -19,9 +19,10 @@ export function useHostScreenState(hostId: string | undefined, action: string | 
   )
   const clientRef = useRef<RpcClient | null>(null)
   const fetchWorktreesInFlightRef = useRef(false)
-  // Why: useRef, not useMemo — React may discard memoized values, which would silently
-  // reset the snapshot token this object exists to own.
-  const worktreeCatalogRef = useRef(new WorktreeCatalogSnapshotClient())
+  // Why: the lazy initializer keeps the snapshot token stable for this mount.
+  const [worktreeCatalogRef] = useState(() => ({
+    current: new WorktreeCatalogSnapshotClient()
+  }))
   const fetchRepoMetadataInFlightRef = useRef(new WeakSet<RpcClient>())
   const fetchRepoMetadataPendingRef = useRef(new WeakSet<RpcClient>())
   const repoMetadataFetchedAtRef = useRef(0)

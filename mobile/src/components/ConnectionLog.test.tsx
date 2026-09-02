@@ -5,7 +5,7 @@ import type { ConnectionLogEntry } from '../transport/types'
 import { ConnectionLog } from './ConnectionLog'
 
 vi.mock('react-native', () => ({
-  ScrollView: 'ScrollView',
+  FlatList: 'FlatList',
   StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 1 },
   Text: 'Text',
   View: 'View'
@@ -56,7 +56,7 @@ describe('ConnectionLog', () => {
   it('fills the available diagnostics viewport', () => {
     const instance = renderLog(true)
     const containerStyles = instance.root.findAllByType('View')[0]!.props.style
-    const scroll = instance.root.findByType('ScrollView')
+    const scroll = instance.root.findByType('FlatList')
 
     expect(containerStyles).toContainEqual({ flex: 1 })
     expect(scroll.props.style).toEqual({ flex: 1 })

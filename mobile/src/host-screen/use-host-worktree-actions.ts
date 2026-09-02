@@ -59,11 +59,14 @@ export function useHostWorktreeActions(args: {
     }
     newWorktreeModalVisibleRef.current = true
     modal.open()
-  }, [])
+  }, [newWorktreeModalRef, newWorktreeModalVisibleRef])
 
-  const setShowNewWorktreeVisible = useCallback((visible: boolean) => {
-    setRouteActionState((current) => setHostRouteNewWorktreeVisible(current, visible))
-  }, [])
+  const setShowNewWorktreeVisible = useCallback(
+    (visible: boolean) => {
+      setRouteActionState((current) => setHostRouteNewWorktreeVisible(current, visible))
+    },
+    [setRouteActionState]
+  )
 
   const updateLocalPins = useCallback(
     (worktreeId: string, pinned: boolean) => {
@@ -80,7 +83,7 @@ export function useHostWorktreeActions(args: {
         return next
       })
     },
-    [hostId]
+    [hostId, setPinnedIds]
   )
 
   const togglePin = useCallback(
@@ -109,7 +112,7 @@ export function useHostWorktreeActions(args: {
           .catch(() => {})
       }
     },
-    [client, worktrees, pinnedIds, updateLocalPins]
+    [client, pinnedIds, setLastKnownWorktrees, setWorktrees, updateLocalPins, worktrees]
   )
 
   const handleDeleteWorktree = useCallback(
@@ -137,7 +140,7 @@ export function useHostWorktreeActions(args: {
         setLastKnownWorktrees((prev) => [...prev, item])
       }
     },
-    [client, fetchWorktrees]
+    [client, fetchWorktrees, setLastKnownWorktrees, setWorktrees]
   )
 
   const handleRemoveHost = useCallback(async () => {
@@ -152,7 +155,7 @@ export function useHostWorktreeActions(args: {
       setConfirmRemoveHost(true)
       Alert.alert('Could not remove host', 'Please try again.')
     }
-  }, [hostId, leaveHost, forgetHostClient])
+  }, [forgetHostClient, hostId, leaveHost, setConfirmRemoveHost])
 
   const navigateFromHostList = useCallback(
     (target: string) => {
@@ -187,7 +190,7 @@ export function useHostWorktreeActions(args: {
       const target = `/h/${hostId}/session/${encodeURIComponent(item.worktreeId)}?name=${encodeURIComponent(item.displayName || item.repo)}`
       navigateFromHostList(target)
     },
-    [client, connState, hostId, navigateFromHostList]
+    [client, connState, hostId, navigateFromHostList, setOptimisticActiveWorktreeIdentity]
   )
 
   const openFloatingWorkspace = useCallback(() => {

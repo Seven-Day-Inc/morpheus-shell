@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
-import type { Image, View } from 'react-native'
+import type { View } from 'react-native'
+import type { BrowserFrameImageHandle } from './MobileBrowserFrameImage'
 import {
   updateBrowserImageSource,
   updateBrowserLayerVisibility,
@@ -8,7 +9,7 @@ import {
 import { mobileBrowserPaneStyles as styles } from './mobile-browser-pane-styles'
 
 type BrowserLayerHandlersArgs = {
-  browserImageRefs: { current: [Image | null, Image | null] }
+  browserImageRefs: { current: [BrowserFrameImageHandle | null, BrowserFrameImageHandle | null] }
   browserLayerRefs: { current: [View | null, View | null] }
   frameUriRef: { current: string | null }
   pendingFrameLayerRef: { current: FrameLayer | null }
@@ -25,7 +26,7 @@ export function useMobileBrowserPaneLayers(args: BrowserLayerHandlersArgs) {
   } = args
 
   const setBrowserImageRef = useCallback(
-    (layer: FrameLayer, image: Image | null) => {
+    (layer: FrameLayer, image: BrowserFrameImageHandle | null) => {
       browserImageRefs.current[layer] = image
       const currentFrameUri = frameUriRef.current
       if (image && currentFrameUri) {
@@ -52,11 +53,11 @@ export function useMobileBrowserPaneLayers(args: BrowserLayerHandlersArgs) {
     [setBrowserLayerRef]
   )
   const setBrowserImageLayer0Ref = useCallback(
-    (image: Image | null) => setBrowserImageRef(0, image),
+    (image: BrowserFrameImageHandle | null) => setBrowserImageRef(0, image),
     [setBrowserImageRef]
   )
   const setBrowserImageLayer1Ref = useCallback(
-    (image: Image | null) => setBrowserImageRef(1, image),
+    (image: BrowserFrameImageHandle | null) => setBrowserImageRef(1, image),
     [setBrowserImageRef]
   )
 

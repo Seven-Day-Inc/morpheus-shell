@@ -1,26 +1,7 @@
 import { View, StyleSheet } from 'react-native'
-import { colors } from '../theme/mobile-theme'
 import type { ConnectionState } from '../transport/types'
 import type { ConnectionVerdict } from '../transport/connection-health'
-
-const stateColors: Record<ConnectionState, string> = {
-  connected: colors.statusGreen,
-  connecting: colors.statusAmber,
-  handshaking: colors.statusAmber,
-  reconnecting: colors.statusAmber,
-  disconnected: colors.textMuted,
-  'auth-failed': colors.statusRed
-}
-
-export function statusDotColor(state: ConnectionState, verdict?: ConnectionVerdict): string {
-  if (verdict?.kind === 'unreachable' || verdict?.kind === 'auth-failed') {
-    return colors.statusRed
-  }
-  if (verdict?.kind === 'warning' || (verdict?.kind === 'normal' && verdict.label.endsWith('…'))) {
-    return colors.statusAmber
-  }
-  return stateColors[state] ?? colors.textMuted
-}
+import { statusDotColor } from './status-dot-color'
 
 // Why: when caller passes a verdict, the dot color reflects the verdict's
 // severity instead of the raw transport state. This avoids the "amber dot

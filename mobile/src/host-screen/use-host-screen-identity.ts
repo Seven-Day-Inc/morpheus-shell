@@ -42,12 +42,12 @@ export function useHostScreenIdentity(args: {
     return () => {
       stale = true
     }
-  }, [hostId])
+  }, [hostId, setPinnedIds])
 
   // Why: mirror client into a ref so imperative call sites read it without re-subscribing.
   useEffect(() => {
     clientRef.current = client
-  }, [client])
+  }, [client, clientRef])
 
   useEffect(() => {
     setHostName('')
@@ -86,5 +86,16 @@ export function useHostScreenIdentity(args: {
     return () => {
       stale = true
     }
-  }, [hostId])
+  }, [
+    hostId,
+    repoMetadataFetchedAtRef,
+    setCatalogError,
+    setError,
+    setHostName,
+    setLastKnownWorktrees,
+    setRepoColorsByName,
+    setRepoIconsByName,
+    setWorktrees,
+    setWorktreesLoaded
+  ])
 }

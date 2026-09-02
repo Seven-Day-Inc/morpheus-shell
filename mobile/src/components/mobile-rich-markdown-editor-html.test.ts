@@ -58,8 +58,8 @@ function runtimeMarkdownToHtml(markdown: string, editable: boolean): string {
     extractFunctionSource(script, 'listKind'),
     extractFunctionSource(script, 'parseListTree'),
     extractFunctionSource(script, 'renderListItems'),
-    extractFunctionSource(script, 'markdownToHtml'),
-    'return markdownToHtml(arguments[0]);'
+    extractFunctionSource(script, 'sanitizeMarkdownHtml'),
+    'return sanitizeMarkdownHtml(arguments[0]);'
   ].join('\n')
   return new Function(sources)(markdown, editable) as string
 }

@@ -47,22 +47,25 @@ export function useHostViewSettings(args: {
       collapsedGroups: [...collapsedGroups],
       workspaceStatuses
     }
-  }, [groupMode, sortMode, filters, collapsedGroups, workspaceStatuses])
+  }, [collapsedGroups, filters, groupMode, sortMode, viewStateRef, workspaceStatuses])
 
   // Apply a MobileViewState onto the individual states and the snapshot ref in one shot.
-  const applyViewState = useCallback((next: MobileViewState) => {
-    viewStateRef.current = next
-    setGroupMode(next.groupMode)
-    setSortMode(next.sortMode)
-    setWorkspaceStatuses(next.workspaceStatuses)
-    setCollapsedGroups(new Set(next.collapsedGroups))
-    setFilters({
-      filterRepoIds: new Set(next.filterRepoIds),
-      hideSleeping: next.hideSleeping,
-      hideDefaultBranch: next.hideDefaultBranch,
-      alwaysShowDefaultBranch: next.alwaysShowDefaultBranch
-    })
-  }, [])
+  const applyViewState = useCallback(
+    (next: MobileViewState) => {
+      viewStateRef.current = next
+      setGroupMode(next.groupMode)
+      setSortMode(next.sortMode)
+      setWorkspaceStatuses(next.workspaceStatuses)
+      setCollapsedGroups(new Set(next.collapsedGroups))
+      setFilters({
+        filterRepoIds: new Set(next.filterRepoIds),
+        hideSleeping: next.hideSleeping,
+        hideDefaultBranch: next.hideDefaultBranch,
+        alwaysShowDefaultBranch: next.alwaysShowDefaultBranch
+      })
+    },
+    [setCollapsedGroups, setFilters, setGroupMode, setSortMode, setWorkspaceStatuses, viewStateRef]
+  )
 
   // Apply the change locally, then patch the desktop's shared store (ui.set) so both apps stay in sync.
   const persistViewSettings = useCallback(
@@ -83,7 +86,7 @@ export function useHostViewSettings(args: {
         // Best-effort: view settings are a convenience preference.
       })
     },
-    [client, applyViewState]
+    [applyViewState, client, viewStateRef]
   )
 
   // Merge the desktop's shared view settings (PersistedUIState) onto local state so desktop changes appear here.
@@ -106,7 +109,7 @@ export function useHostViewSettings(args: {
     } catch {
       // Transient transport failure; retry on the next focus/connect.
     }
-  }, [client, connState, hostId, applyViewState])
+  }, [applyViewState, client, clientRef, connState, hostId, viewStateRef])
 
   const handleSortChange = useCallback(
     (value: MobileSortMode) => {
@@ -117,11 +120,11 @@ export function useHostViewSettings(args: {
 
   const toggleHideSleeping = useCallback(() => {
     persistViewSettings({ hideSleeping: !viewStateRef.current.hideSleeping })
-  }, [persistViewSettings])
+  }, [persistViewSettings, viewStateRef])
 
   const toggleHideDefaultBranch = useCallback(() => {
     persistViewSettings({ hideDefaultBranch: !viewStateRef.current.hideDefaultBranch })
-  }, [persistViewSettings])
+  }, [persistViewSettings, viewStateRef])
 
   const toggleRepoFilter = useCallback(
     (repoId: string) => {
@@ -133,7 +136,7 @@ export function useHostViewSettings(args: {
       }
       persistViewSettings({ filterRepoIds: [...next] })
     },
-    [persistViewSettings]
+    [persistViewSettings, viewStateRef]
   )
 
   const clearFilters = useCallback(() => {
@@ -169,7 +172,7 @@ export function useHostViewSettings(args: {
       }
       persistViewSettings({ collapsedGroups: [...next] })
     },
-    [persistViewSettings]
+    [persistViewSettings, viewStateRef]
   )
   const toggleWorktreeLineage = useCallback(
     (item: Worktree) => toggleCollapsed(getMobileWorkspaceLineageGroupKey(item)),

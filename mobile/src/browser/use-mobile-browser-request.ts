@@ -61,7 +61,7 @@ export function useMobileBrowserRequest(args: BrowserRequestArgs) {
         }
       }
     },
-    [client, pageParams]
+    [busyRef, client, pageParams, setBusy, setError]
   )
   return { pageParams, sendBrowserRequest }
 }

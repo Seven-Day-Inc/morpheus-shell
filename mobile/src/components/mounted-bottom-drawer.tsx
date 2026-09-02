@@ -109,7 +109,7 @@ export function MountedBottomDrawer({
     translateY.value = 0
     progress.value = withTiming(1, { duration: SHOW_DURATION })
     setWindowEpoch((epoch) => epoch + 1)
-  }, [interactive, visible])
+  }, [interactive, progress, translateY, visible])
 
   useEffect(() => {
     if (visible) {

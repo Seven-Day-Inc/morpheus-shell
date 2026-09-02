@@ -76,7 +76,18 @@ export function useHostRepoMetadata(args: {
         fetchRepoMetadataInFlightRef.current.delete(requestClient)
       }
     },
-    [client, connState, hostId]
+    [
+      client,
+      clientRef,
+      connState,
+      fetchRepoMetadataInFlightRef,
+      fetchRepoMetadataPendingRef,
+      hostId,
+      repoMetadataFetchedAtRef,
+      setRepoColorsByName,
+      setRepoIconsByName,
+      setRepoIdsByName
+    ]
   )
 
   return fetchRepoMetadata
