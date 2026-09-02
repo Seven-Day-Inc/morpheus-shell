@@ -1,4 +1,4 @@
-import { createElement, Suspense } from 'react'
+import { createElement, Suspense, useMemo } from 'react'
 import { act, create } from 'react-test-renderer'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RpcClient } from '../transport/rpc-client'
@@ -73,7 +73,6 @@ function makeHarness() {
       return () => {}
     }
   )
-  const client = { sendRequest, subscribe } as unknown as RpcClient
   const consumeAcceptedSessionTabs = () => {}
   const fetchTerminals = async () => {}
   const getPendingTerminalRecoveryContextKey = () => contextKey
@@ -85,6 +84,10 @@ function makeHarness() {
   })
 
   function Harness({ onParked = onPendingTerminalRecoveryParked, suspend }: HarnessProps): null {
+    const client = useMemo(
+      () => ({ sendRequest, subscribe }) as unknown as RpcClient,
+      [sendRequest, subscribe]
+    )
     actions = useMobileSessionTabsReconciliation<TestResult, string>({
       client,
       connState,
