@@ -24,7 +24,9 @@ const result = spawnSync(
     '--no-supply-chain',
     '--no-telemetry',
     '--blocking',
-    'error'
+    'error',
+    '--max-duration',
+    '900'
   ],
   { stdio: 'inherit' }
 )

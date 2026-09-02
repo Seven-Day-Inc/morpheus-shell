@@ -2067,6 +2067,7 @@ function compareTasksByRepository(
   return repoComparison || compareTasksByUpdated(a, b)
 }
 
+// oxlint-disable-next-line react-doctor/prefer-useReducer -- Why: task, filter, modal, and transport states have independent lifecycles.
 export default function MobileTasksScreen() {
   const { hostId, taskSource } = useLocalSearchParams<{ hostId: string; taskSource?: string }>()
   const router = useRouter()
