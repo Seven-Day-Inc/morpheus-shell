@@ -84,12 +84,11 @@ async function flush(): Promise<void> {
 }
 
 describe('useMobileTerminalInventoryRecovery', () => {
-  let renderer: ReactTestRenderer | null = null
-  let bridgeRenderer: ReactTestRenderer | null = null
+  const renderers: Partial<Record<'bridge' | 'session', ReactTestRenderer>> = {}
 
   async function mount(scopeKey = 'host::worktree-a'): Promise<void> {
     await act(async () => {
-      renderer = create(createElement(Harness, { scopeKey }))
+      renderers.session = create(createElement(Harness, { scopeKey }))
       await flush()
     })
     act(() => actions?.activateTerminalInventoryRecovery())
@@ -104,10 +103,10 @@ describe('useMobileTerminalInventoryRecovery', () => {
   })
 
   afterEach(() => {
-    act(() => renderer?.unmount())
-    act(() => bridgeRenderer?.unmount())
-    renderer = null
-    bridgeRenderer = null
+    act(() => renderers.session?.unmount())
+    act(() => renderers.bridge?.unmount())
+    delete renderers.session
+    delete renderers.bridge
     actions = null
     bridgeSignal = null
     vi.useRealTimers()
@@ -116,7 +115,7 @@ describe('useMobileTerminalInventoryRecovery', () => {
   it('queues a bridge signal until the recovery action connects', async () => {
     const request = vi.fn()
     await act(async () => {
-      bridgeRenderer = create(
+      renderers.bridge = create(
         createElement(BridgeHarness, { scopeKey: 'scope-a', connect: false, request })
       )
       await flush()
@@ -128,7 +127,7 @@ describe('useMobileTerminalInventoryRecovery', () => {
     expect(request).not.toHaveBeenCalled()
 
     await act(async () => {
-      bridgeRenderer?.update(
+      renderers.bridge?.update(
         createElement(BridgeHarness, { scopeKey: 'scope-a', connect: true, request })
       )
       await flush()
@@ -140,7 +139,7 @@ describe('useMobileTerminalInventoryRecovery', () => {
     const requestA = vi.fn()
     const requestB = vi.fn()
     await act(async () => {
-      bridgeRenderer = create(
+      renderers.bridge = create(
         createElement(BridgeHarness, { scopeKey: 'scope-a', connect: true, request: requestA })
       )
       await flush()
@@ -148,7 +147,7 @@ describe('useMobileTerminalInventoryRecovery', () => {
     const staleSignal = bridgeSignal
 
     await act(async () => {
-      bridgeRenderer?.update(
+      renderers.bridge?.update(
         createElement(BridgeHarness, { scopeKey: 'scope-b', connect: true, request: requestB })
       )
       await flush()
@@ -277,7 +276,7 @@ describe('useMobileTerminalInventoryRecovery', () => {
       actions?.requestTerminalInventoryRecovery()
     })
     await act(async () => {
-      renderer?.update(createElement(Harness, { scopeKey: 'host::worktree-b' }))
+      renderers.session?.update(createElement(Harness, { scopeKey: 'host::worktree-b' }))
     })
     await act(async () => {
       oldPass.resolve(false)
@@ -308,7 +307,7 @@ describe('useMobileTerminalInventoryRecovery', () => {
     expect(actions?.isCertifiedTerminalSweepDue(100)).toBe(false)
 
     await act(async () => {
-      renderer?.update(createElement(Harness, { scopeKey: 'scope-b' }))
+      renderers.session?.update(createElement(Harness, { scopeKey: 'scope-b' }))
       await flush()
     })
     expect(actions?.isCertifiedTerminalSweepDue(100)).toBe(true)
