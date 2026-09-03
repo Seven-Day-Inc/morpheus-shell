@@ -183,9 +183,7 @@ export function activateAndRevealWorktree(
     backendStartupTerminalSpawned?: boolean
     /** Set by callers that navigate here only to open their own non-terminal surface
      *  (an editor file, a diff). Activation then leaves a closed-last-terminal workspace
-     *  empty instead of adding a shell the user never asked for. Caveat: on a
-     *  runtime-owned workspace with a live web session the host owns terminal creation,
-     *  so ensureWebRuntimeWorktreeTerminalAfterWake may still seed one (matches main). */
+     *  empty instead of adding a shell the user never asked for. */
     providesInitialSurface?: boolean
   }
 ): ActivateAndRevealResult | false {
@@ -321,7 +319,11 @@ export function activateAndRevealWorktree(
     }
   }
 
-  if (opts?.notifyHostRuntime !== false && !opts?.backendStartupTerminalSpawned) {
+  if (
+    opts?.notifyHostRuntime !== false &&
+    !opts?.backendStartupTerminalSpawned &&
+    opts?.providesInitialSurface !== true
+  ) {
     ensureWebRuntimeWorktreeTerminalAfterWake(worktreeId)
   }
 

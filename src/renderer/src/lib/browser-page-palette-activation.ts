@@ -54,6 +54,9 @@ export function activateBrowserPagePaletteResult({
   const targetHostId = executionHostId ?? worktree.hostId
   const activated = activateAndRevealWorktree(worktree.id, {
     ...(targetHostId ? { executionHostId: targetHostId } : {}),
+    // Why: the browser tab selected below is the requested surface; waking a same-id host session
+    // can publish a terminal snapshot that supersedes the local browser selection.
+    notifyHostRuntime: false,
     providesInitialSurface: true
   })
   if (!activated) {

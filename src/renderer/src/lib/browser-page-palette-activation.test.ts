@@ -158,6 +158,7 @@ describe('activateBrowserPagePaletteResult', () => {
 
     const state = useAppStore.getState()
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-1', {
+      notifyHostRuntime: false,
       providesInitialSurface: true
     })
     expect(state.activeBrowserTabId).toBe('ws-1')
@@ -174,6 +175,7 @@ describe('activateBrowserPagePaletteResult', () => {
 
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-1', {
       executionHostId: 'ssh:host-1',
+      notifyHostRuntime: false,
       providesInitialSurface: true
     })
   })
@@ -195,6 +197,7 @@ describe('activateBrowserPagePaletteResult', () => {
     ).toBe('activated')
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-1', {
       executionHostId: 'runtime:paired-host',
+      notifyHostRuntime: false,
       providesInitialSurface: true
     })
   })
@@ -216,6 +219,7 @@ describe('activateBrowserPagePaletteResult', () => {
     ).toMatchObject({ status: 'activated' })
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith(worktreeId, {
       executionHostId: 'ssh:host-1',
+      notifyHostRuntime: false,
       providesInitialSurface: true
     })
   })

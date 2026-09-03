@@ -19,7 +19,7 @@ const { runtimeCall, resetRemoteRuntimeTransport, subscribedTerminalHandles } =
     }
   })
 
-function hostSurface(status: 'pending-handle' | 'ready'): unknown {
+function hostSurface(status: 'pending-handle' | 'ready' | 'absent'): unknown {
   return {
     worktree: 'id:wt-1',
     publicationEpoch: 'epoch-1',
@@ -27,18 +27,21 @@ function hostSurface(status: 'pending-handle' | 'ready'): unknown {
     activeGroupId: 'group-1',
     activeTabId: 'host-tab-1::leaf-1',
     activeTabType: 'terminal',
-    tabs: [
-      {
-        type: 'terminal',
-        id: 'host-tab-1::leaf-1',
-        parentTabId: 'host-tab-1',
-        leafId: 'leaf-1',
-        title: 'Terminal 1',
-        isActive: true,
-        status,
-        terminal: status === 'ready' ? 'terminal-1' : null
-      }
-    ]
+    tabs:
+      status === 'absent'
+        ? []
+        : [
+            {
+              type: 'terminal',
+              id: 'host-tab-1::leaf-1',
+              parentTabId: 'host-tab-1',
+              leafId: 'leaf-1',
+              title: 'Terminal 1',
+              isActive: true,
+              status,
+              terminal: status === 'ready' ? 'terminal-1' : null
+            }
+          ]
   }
 }
 
@@ -88,6 +91,34 @@ describe('pending paired host terminal attachment', () => {
 
     expect(subscribedTerminalHandles()).toContain('terminal-1')
     expect(transport.getPtyId()).toBe('remote:env-1@@terminal-1')
+    transport.destroy?.()
+  })
+
+  it('waits for a host tab to republish instead of treating an empty snapshot as closure', async () => {
+    let materialized = false
+    runtimeCall.mockImplementation((args: { method: string }) => {
+      if (args.method === 'session.tabs.activate' || args.method === 'session.tabs.list') {
+        return Promise.resolve({ ok: true, result: hostSurface(materialized ? 'ready' : 'absent') })
+      }
+      return Promise.resolve({ ok: true, result: { terminal: { handle: 'terminal-1' } } })
+    })
+    const { createRemoteRuntimePtyTransport } = await import('./remote-runtime-pty-transport')
+    const onError = vi.fn()
+    const transport = createRemoteRuntimePtyTransport('env-1', {
+      worktreeId: 'wt-1',
+      tabId: 'web-terminal-host-tab-1',
+      leafId: 'leaf-1'
+    })
+
+    const connect = transport.connect({ url: '', callbacks: { onError } })
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(onError).not.toHaveBeenCalled()
+
+    materialized = true
+    await vi.advanceTimersByTimeAsync(15_000)
+    await expect(connect).resolves.toMatchObject({ id: 'remote:env-1@@terminal-1' })
+    expect(onError).not.toHaveBeenCalled()
+    expect(subscribedTerminalHandles()).toContain('terminal-1')
     transport.destroy?.()
   })
 })

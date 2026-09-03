@@ -660,7 +660,10 @@ export function createRemoteRuntimePtyTransport(
         if (siblingStillExists) {
           return false
         }
-        return null
+        // Why: a relaunch can publish an empty client snapshot before restoring this tab. That is
+        // unverifiable liveness, not evidence the terminal was closed.
+        nextRequest = 'list'
+        continue
       }
       // Only activation materializes a persisted host terminal after relaunch.
       nextRequest = activationOutcomeUnknown ? 'list' : 'activate'
