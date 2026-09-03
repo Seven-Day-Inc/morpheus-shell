@@ -11,6 +11,7 @@ vi.mock('@/components/terminal-pane/remote-runtime-pty-recovery-state', () => ({
 }))
 
 import { useRemoteRuntimeRecoveryTriggers } from './use-remote-runtime-recovery-triggers'
+import { RUNTIME_ENVIRONMENT_RECONNECTED_EVENT } from './runtime-environment-recovery-event'
 
 describe('useRemoteRuntimeRecoveryTriggers', () => {
   let systemResumedCallback: (() => void) | null = null
@@ -37,15 +38,16 @@ describe('useRemoteRuntimeRecoveryTriggers', () => {
     delete (window as unknown as { api?: unknown }).api
   })
 
-  it('advances shared-control and pane backoffs once per online or resume trigger', () => {
+  it('advances shared-control and pane backoffs once per online, resume, or host reconnect trigger', () => {
     const { rerender, unmount } = renderHook(() => useRemoteRuntimeRecoveryTriggers())
     rerender()
 
     window.dispatchEvent(new Event('online'))
     systemResumedCallback?.()
+    window.dispatchEvent(new Event(RUNTIME_ENVIRONMENT_RECONNECTED_EVENT))
 
-    expect(retryConnectionsNow).toHaveBeenCalledTimes(2)
-    expect(retryAllRemoteRuntimePtyRecoveriesNowMock).toHaveBeenCalledTimes(2)
+    expect(retryConnectionsNow).toHaveBeenCalledTimes(3)
+    expect(retryAllRemoteRuntimePtyRecoveriesNowMock).toHaveBeenCalledTimes(3)
     expect(onSystemResumed).toHaveBeenCalledTimes(1)
     unmount()
   })
@@ -55,6 +57,7 @@ describe('useRemoteRuntimeRecoveryTriggers', () => {
     unmount()
 
     window.dispatchEvent(new Event('online'))
+    window.dispatchEvent(new Event(RUNTIME_ENVIRONMENT_RECONNECTED_EVENT))
 
     expect(retryConnectionsNow).not.toHaveBeenCalled()
     expect(retryAllRemoteRuntimePtyRecoveriesNowMock).not.toHaveBeenCalled()

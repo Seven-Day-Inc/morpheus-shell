@@ -57,14 +57,14 @@ function requireRegisteredCommand(config: InstalledCursorHooks, eventName: strin
 
 function runRegisteredCursorHook(
   command: string,
-  input: string,
+  input: string | undefined,
   extraEnv: NodeJS.ProcessEnv = {}
 ): { stdout: string; stderr: string; status: number | null } {
   const executable = process.platform === 'win32' ? 'cmd.exe' : '/bin/sh'
   const args = process.platform === 'win32' ? ['/d', '/s', '/c', command] : ['-c', command]
   const result = spawnSync(executable, args, {
     encoding: 'utf8',
-    input,
+    ...(input === undefined ? {} : { input }),
     timeout: 15_000,
     env: {
       ...process.env,
@@ -208,14 +208,19 @@ describe('CursorHookService', () => {
   it('emits protocol-valid JSON on stdout for every managed event, including empty stdin (#15462)', () => {
     expect(new CursorHookService().install().state).toBe('installed')
     const config = readInstalledCursorHooks(homeDir)
-    const payloads = [
-      (eventName: string) => JSON.stringify({ hook_event_name: eventName, tool_name: 'Write' }),
-      () => ''
-    ]
+    const payloads: ((eventName: string) => string | undefined)[] =
+      process.platform === 'win32'
+        ? [() => undefined]
+        : [
+            (eventName) => JSON.stringify({ hook_event_name: eventName, tool_name: 'Write' }),
+            () => ''
+          ]
 
     for (const eventName of CURSOR_EVENTS) {
       const command = requireRegisteredCommand(config, eventName)
       for (const payloadFor of payloads) {
+        // Why: Windows deliberately exits before consuming stdin with no Orca context; a
+        // synchronous writer can otherwise hang in the cmd.exe launcher chain.
         const result = runRegisteredCursorHook(command, payloadFor(eventName))
         expect(result.status, `${eventName} exit`).toBe(0)
         expect(result.stderr, `${eventName} stderr`).toBe('')

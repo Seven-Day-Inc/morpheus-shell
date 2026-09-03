@@ -13,6 +13,7 @@ import {
 } from '../web-runtime-environment'
 import { translate } from '@/i18n/i18n'
 import { translateHostAccessLinkError } from '@/lib/remote-pairing-copy'
+import { RUNTIME_ENVIRONMENT_RECONNECTED_EVENT } from '../../runtime/runtime-environment-recovery-event'
 import { callEnvironmentEnvelope } from './web-runtime-calls'
 import {
   closeActiveRuntimeClients,
@@ -170,15 +171,19 @@ export function createRuntimeEnvironmentsApi(): NonNullable<
       }
       return { disconnected: redactStoredWebRuntimeEnvironment(environment) }
     },
-    connect: ({ selector, timeoutMs }) => {
+    connect: async ({ selector, timeoutMs }) => {
       const environment = resolveEnvironment(selector)
       manuallyDisconnectedEnvironmentIds.delete(environment.id)
-      return callEnvironmentEnvelope<RuntimeStatus>(
+      const response = await callEnvironmentEnvelope<RuntimeStatus>(
         environment.id,
         'status.get',
         undefined,
         timeoutMs
       )
+      if (response.ok) {
+        window.dispatchEvent(new Event(RUNTIME_ENVIRONMENT_RECONNECTED_EVENT))
+      }
+      return response
     },
     getStatus: ({ selector, timeoutMs }) =>
       callEnvironmentEnvelope<RuntimeStatus>(selector, 'status.get', undefined, timeoutMs),

@@ -6,6 +6,7 @@ import {
   installBrowserGlobals,
   writeStoredRuntimeEnvironment
 } from './web-preload-api-test-harness'
+import { RUNTIME_ENVIRONMENT_RECONNECTED_EVENT } from '../runtime/runtime-environment-recovery-event'
 
 describe('web runtime environment identity', () => {
   beforeEach(() => {
@@ -198,6 +199,8 @@ describe('web runtime environment identity', () => {
     }))
     const globals = installBrowserGlobals('Linux')
     writeStoredRuntimeEnvironment(globals.storage, 'web-server-a')
+    const reconnected = vi.fn()
+    globals.window.addEventListener(RUNTIME_ENVIRONMENT_RECONNECTED_EVENT, reconnected)
     const { installWebPreloadApi } = await import('./web-preload-api')
     installWebPreloadApi()
 
@@ -242,6 +245,7 @@ describe('web runtime environment identity', () => {
     expect(
       JSON.parse(globals.storage.getItem('orca.web.runtimeEnvironment.v1') ?? '{}')
     ).toMatchObject({ pairedDeviceId: 'paired-device-a' })
+    expect(reconnected).toHaveBeenCalledOnce()
   })
 
   it('fences a web runtime response that completes after manual disconnect', async () => {

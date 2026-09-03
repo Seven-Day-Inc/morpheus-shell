@@ -36,14 +36,16 @@ export function installBrowserGlobals(userAgent = 'Linux'): {
   storage: MemoryStorage
 } {
   const storage = new MemoryStorage()
+  const events = new EventTarget()
   const windowStub = {
     localStorage: storage,
     location: {
       protocol: 'http:',
       reload: vi.fn()
     },
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
+    addEventListener: vi.fn(events.addEventListener.bind(events)),
+    removeEventListener: vi.fn(events.removeEventListener.bind(events)),
+    dispatchEvent: vi.fn(events.dispatchEvent.bind(events)),
     atob: (value: string) => Buffer.from(value, 'base64').toString('binary'),
     btoa: (value: string) => Buffer.from(value, 'binary').toString('base64')
   } as unknown as Window & typeof globalThis
