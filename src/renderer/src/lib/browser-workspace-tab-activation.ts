@@ -1,4 +1,5 @@
 import { useAppStore } from '@/store'
+import type { ExecutionHostId } from '../../../shared/execution-host'
 
 /**
  * Bring a browser workspace forward as the surface the reader is in.
@@ -9,13 +10,17 @@ import { useAppStore } from '@/store'
  * nothing to bring forward.
  */
 export function activateBrowserWorkspaceTab(params: {
+  executionHostId?: ExecutionHostId
   worktreeId: string
   workspaceId: string
   pageId?: string
 }): boolean {
   const state = useAppStore.getState()
   const unifiedTab = (state.unifiedTabsByWorktree[params.worktreeId] ?? []).find(
-    (candidate) => candidate.contentType === 'browser' && candidate.entityId === params.workspaceId
+    (candidate) =>
+      candidate.contentType === 'browser' &&
+      candidate.entityId === params.workspaceId &&
+      (params.executionHostId === undefined || candidate.executionHostId === params.executionHostId)
   )
   if (!unifiedTab) {
     return false

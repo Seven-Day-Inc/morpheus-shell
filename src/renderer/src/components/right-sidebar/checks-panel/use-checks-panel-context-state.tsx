@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useAppStore } from '@/store'
 import { useNow } from '@/hooks/use-now'
 import { isFolderRepo } from '../../../../../shared/repo-kind'
@@ -124,7 +124,7 @@ export function useChecksPanelContextState(model: ChecksPanelContextStateInput) 
   )
 
   // Why: no key={worktreeId} remount (caused an IPC storm on Windows).
-  const [prevPanelContextKey, setPrevPanelContextKey] = useState(panelContextKey)
+  const previousPanelContextKeyRef = useRef(panelContextKey)
   const [prRefreshStateNow, setPrRefreshStateNow] = useState(() => Date.now())
   // Why: eligibility expires on wall time, independently of the PR refresh-state
   // timers, so the freshness gate needs its own tick. ChecksPanel is unmounted
@@ -171,12 +171,12 @@ export function useChecksPanelContextState(model: ChecksPanelContextStateInput) 
   })
 
   useEffect(() => {
-    if (panelContextKey === prevPanelContextKey) {
+    if (panelContextKey === previousPanelContextKeyRef.current) {
       return
     }
-    setPrevPanelContextKey(panelContextKey)
+    previousPanelContextKeyRef.current = panelContextKey
     resetPanelContext()
-  }, [panelContextKey, prevPanelContextKey])
+  }, [panelContextKey])
 
   const isFolder = repo ? isFolderRepo(repo) : false
   const prCacheKey =
@@ -337,7 +337,6 @@ export function useChecksPanelContextState(model: ChecksPanelContextStateInput) 
   return {
     clearTitleInputFocusTimer,
     setChecksPanelContentRef,
-    prevPanelContextKey,
     prRefreshStateNow: Math.max(prRefreshStateNow, panelClockNow),
     isFolder,
     prCacheKey,

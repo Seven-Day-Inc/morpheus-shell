@@ -64,6 +64,7 @@ export function activateBrowserPagePaletteResult({
   // active behind a tab that never shows the page.
   if (
     !activateBrowserWorkspaceTab({
+      executionHostId: targetHostId,
       worktreeId: worktree.id,
       workspaceId: workspace.id,
       pageId
