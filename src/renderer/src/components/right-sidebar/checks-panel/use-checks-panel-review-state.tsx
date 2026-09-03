@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useAppStore } from '@/store'
 import { prChecksCacheSuffix, prCommentsCacheSuffix } from '@/store/github/cache-identity'
 import { getGitHubRepoCacheKey } from '@/store/slices/github-cache-key'
@@ -152,7 +152,11 @@ export function useChecksPanelReviewState(model: ChecksPanelReviewStateInput) {
       : null
   // Read via a ref so a HEAD move drops confirmed (fingerprint mismatch) without re-triggering the eligibility network call.
   const eligibilityHeadOidRef = useRef(eligibilityHeadOid)
-  eligibilityHeadOidRef.current = eligibilityHeadOid
+
+  useEffect(() => {
+    eligibilityHeadOidRef.current = eligibilityHeadOid
+  }, [eligibilityHeadOid])
+
   const eligibilityGitFingerprint = gitStatusReadyForPanelContext
     ? buildChecksPanelEligibilityGitFingerprint({
         headOid: eligibilityHeadOid,

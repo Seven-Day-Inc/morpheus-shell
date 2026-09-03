@@ -8,7 +8,7 @@
  * the host a navigation named — so those, and only those, are the key.
  */
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useEffectEvent } from 'react'
 import type { AutomationRun } from '../../../../shared/automations-types'
 import { capturedAutomationOwner, capturedAutomationOwnerKey } from './automation-captured-owner'
 import type { AutomationListRow } from './automation-list-row-identity'
@@ -61,9 +61,6 @@ function navigationHostId(
 }
 
 export function useSelectedAutomationRunHistory(input: SelectedAutomationRunHistoryInput): void {
-  const inputRef = useRef(input)
-  inputRef.current = input
-
   const automationId = input.selected?.automation.id ?? null
   const rowKey = input.selected?.key ?? null
   const reloadToken = input.reloadToken
@@ -76,8 +73,8 @@ export function useSelectedAutomationRunHistory(input: SelectedAutomationRunHist
         ].join('|')
       : ''
 
-  useEffect(() => {
-    const { selected, context, legacyTarget, navigation, onSettled } = inputRef.current
+  const loadHistory = useEffectEvent(() => {
+    const { selected, context, legacyTarget, navigation, onSettled } = input
     if (!selected || !automationId || !rowKey) {
       onSettled({ automationId: null, rowKey: null, ownerKey: null, runs: [], notice: null })
       return
@@ -107,5 +104,9 @@ export function useSelectedAutomationRunHistory(input: SelectedAutomationRunHist
     return () => {
       cancelled = true
     }
+  })
+
+  useEffect(() => {
+    return loadHistory()
   }, [automationId, rowKey, fetchKey, reloadToken])
 }

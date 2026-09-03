@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import type { Repo } from '../../../../shared/repo-types'
 import { getActiveRuntimeTarget } from '@/runtime/runtime-rpc-client'
 import {
@@ -71,11 +71,15 @@ export function useSettingsTerminalModel(
     hostPlatform: localWindowsRuntimeCapabilities.hostPlatform
   })
   const isWindowsTerminalHost = runtimeWslSupportedPlatform
+  const neededSectionIds = navigation.neededSectionIds
+  const mountedSectionIds = model.mountedSectionIds
+  const setMountedSectionIds = model.setMountedSectionIds
 
-  if ([...navigation.neededSectionIds].some((id) => !model.mountedSectionIds.has(id))) {
-    // Why: record newly needed sections during render so panes don't wait for a follow-up Effect.
-    model.setMountedSectionIds(navigation.neededSectionIds)
-  }
+  useEffect(() => {
+    if ([...neededSectionIds].some((id) => !mountedSectionIds.has(id))) {
+      setMountedSectionIds(neededSectionIds)
+    }
+  }, [mountedSectionIds, neededSectionIds, setMountedSectionIds])
 
   // Why: load hooks for the selected host's repo id, not the representative id (they differ for non-default hosts).
   const neededRepos = useMemo(() => {

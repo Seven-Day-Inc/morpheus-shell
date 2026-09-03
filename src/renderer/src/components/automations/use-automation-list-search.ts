@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef } from 'react'
+import { useDeferredValue, useEffect, useMemo } from 'react'
 import type { Repo } from '../../../../shared/repo-types'
 import { resolveAutomationListSearchQuery } from './automation-list-search'
 import type { AutomationListRow } from './automation-list-row-identity'
@@ -31,11 +31,8 @@ function useAutomationSearchRows(
   sources: AutomationListSearchRowSource[]
 ): AutomationListSearchRow[] {
   const fingerprint = useMemo(() => buildAutomationListSearchRowFingerprint(sources), [sources])
-  const cacheRef = useRef<{ fingerprint: string; rows: AutomationListSearchRow[] } | null>(null)
-  if (!cacheRef.current || cacheRef.current.fingerprint !== fingerprint) {
-    cacheRef.current = { fingerprint, rows: buildAutomationListSearchRows(sources) }
-  }
-  return cacheRef.current.rows
+  // oxlint-disable-next-line react-hooks/exhaustive-deps -- The fingerprint is the content key; fresh equal arrays must reuse the index.
+  return useMemo(() => buildAutomationListSearchRows(sources), [fingerprint])
 }
 
 export function useAutomationListSearch({

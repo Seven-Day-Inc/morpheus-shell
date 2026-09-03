@@ -77,9 +77,11 @@ export function ExternalAutomationRunTable({
   const managerRef = useRef(manager)
   const jobRef = useRef(job)
 
-  scopeRef.current = scope
-  managerRef.current = manager
-  jobRef.current = job
+  useEffect(() => {
+    scopeRef.current = scope
+    managerRef.current = manager
+    jobRef.current = job
+  }, [job, manager, scope])
   // Refetch when the host changes, not just the job: the same manager and job ID
   // can be a different machine's cron entry.
   const scopeKey = externalAutomationScopeKey(scope)

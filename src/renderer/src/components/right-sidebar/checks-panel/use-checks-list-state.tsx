@@ -51,7 +51,11 @@ export function useChecksListState({
   const { detailsHeight, handleResizeStart } = useCheckDetailsResize(
     shouldConstrainCheckList && checks.length > 0
   )
-  detailsContextRef.current = checkDetailsContextKey
+
+  useEffect(() => {
+    detailsContextRef.current = checkDetailsContextKey
+  }, [checkDetailsContextKey])
+
   const sorted = React.useMemo(() => sortChecksBySeverity(checks), [checks])
   const rows = React.useMemo(
     () =>
@@ -82,14 +86,15 @@ export function useChecksListState({
       }
       return next
     })
+    const shouldAutoExpand = autoExpandedContextRef.current !== checkDetailsContextKey
+    const firstFailed = shouldAutoExpand ? rows.find((row) => isFailedCheck(row.check)) : undefined
+    if (shouldAutoExpand) {
+      autoExpandedContextRef.current = checkDetailsContextKey
+    }
     setExpandedCheckKeys((current) => {
       const next = new Set([...current].filter((key) => validKeys.has(key)))
-      if (autoExpandedContextRef.current !== checkDetailsContextKey) {
-        const firstFailed = rows.find((row) => isFailedCheck(row.check))
-        if (firstFailed) {
-          next.add(firstFailed.key)
-        }
-        autoExpandedContextRef.current = checkDetailsContextKey
+      if (firstFailed) {
+        next.add(firstFailed.key)
       }
       return next
     })

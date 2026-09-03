@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useEffectEvent } from 'react'
 import { getRuntimeGitStatus, getRuntimeGitUpstreamStatus } from '@/runtime/runtime-git-client'
 import {
   buildChecksPanelEligibilityGitFingerprint,
@@ -103,6 +103,16 @@ export function useChecksPanelGitStatusEffects(model: ChecksPanelGitStatusEffect
     sshConnectionStatus,
     updateWorktreeGitIdentity
   } = model
+
+  const scheduleGitStatusRetry = useEffectEvent((requestContextKey: string) => {
+    gitStatusSnapshotRetryTimerRef.current = setTimeout(() => {
+      gitStatusSnapshotRetryTimerRef.current = null
+      if (shouldCommitChecksPanelGitStatusSnapshot(panelContextKeyRef.current, requestContextKey)) {
+        setGitStatusRefreshNonce((value) => value + 1)
+      }
+    }, GIT_STATUS_FAILURE_RETRY_MS)
+  })
+
   useEffect(() => {
     if (
       !repo ||
@@ -205,17 +215,7 @@ export function useChecksPanelGitStatusEffects(model: ChecksPanelGitStatusEffect
           ) {
             setGitStatusProbeErrorContextKey(requestContextKey)
           }
-          gitStatusSnapshotRetryTimerRef.current = setTimeout(() => {
-            gitStatusSnapshotRetryTimerRef.current = null
-            if (
-              shouldCommitChecksPanelGitStatusSnapshot(
-                panelContextKeyRef.current,
-                requestContextKey
-              )
-            ) {
-              setGitStatusRefreshNonce((value) => value + 1)
-            }
-          }, GIT_STATUS_FAILURE_RETRY_MS)
+          scheduleGitStatusRetry(requestContextKey)
         }
       })
       .finally(() => {

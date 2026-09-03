@@ -8,7 +8,7 @@
  * it on that machine" survives the machine changing identity underneath it.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { translate } from '@/i18n/i18n'
 import type { Repo } from '../../../../shared/repo-types'
 import type {
@@ -141,9 +141,12 @@ export function useAutomationCreateDestination(
   // Why refs: the check runs inside an async submit, where a value closed over
   // when the handler was created could be an incarnation old.
   const entriesRef = useRef(entries)
-  entriesRef.current = entries
   const repoTablesRef = useRef(repoTables)
-  repoTablesRef.current = repoTables
+
+  useEffect(() => {
+    entriesRef.current = entries
+    repoTablesRef.current = repoTables
+  }, [entries, repoTables])
 
   const check = useCallback(
     (projectId: string): AutomationCreateDestinationCheck => {

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore, type AppState } from '@/store'
 import { useActiveWorktree, useRepoById } from '@/store/selectors'
 import { useChecksPanelTerminalWorktree } from '../use-checks-panel-terminal-worktree'
@@ -163,7 +163,6 @@ export function useChecksPanelControllerState() {
   const conflictSummaryRefreshKeyRef = useRef<string | null>(null)
   const panelVisibleSinceRef = useRef<number | null>(null)
   const foregroundedUnrenderedReviewKeyRef = useRef<string | null>(null)
-  commentsRef.current = comments
   const prGenerationRecords = useAppStore((s) => s.pullRequestGenerationRecords)
   const allocatePullRequestGenerationRequestId = useAppStore(
     (s) => s.allocatePullRequestGenerationRequestId
@@ -259,7 +258,12 @@ export function useChecksPanelControllerState() {
     pushTarget: activeWorktreePushTarget
   })
   const panelContextKeyRef = useRef(panelContextKey)
-  panelContextKeyRef.current = panelContextKey
+
+  useEffect(() => {
+    commentsRef.current = comments
+    panelContextKeyRef.current = panelContextKey
+  }, [comments, panelContextKey])
+
   return {
     rightSidebarOpen,
     rightSidebarTab,

@@ -100,7 +100,11 @@ export function useAutomationHostCatalog(
   // callback must read the latest repo tables, not the ones it was created with.
   const repoTables = useMemo(() => groupReposByAutomationAuthority(repos), [repos])
   const repoTablesRef = useRef(repoTables)
-  repoTablesRef.current = repoTables
+
+  useEffect(() => {
+    repoTablesRef.current = repoTables
+  }, [repoTables])
+
   const makeController = useCallback(
     () =>
       createAutomationHostQueryController({

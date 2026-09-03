@@ -18,7 +18,10 @@ export function useExternalAutomationScopeRetention(
   // does not cancel and restart probes that are already in flight.
   const signature = useMemo(() => owners.map(ownerKey).join(' '), [owners])
   const ownersRef = useRef(owners)
-  ownersRef.current = owners
+
+  useEffect(() => {
+    ownersRef.current = owners
+  }, [owners])
 
   useEffect(() => {
     void window.api.automations.retainExternalScopes({ owners: ownersRef.current })

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { applyDocumentTheme } from '@/lib/document-theme'
 import { useSettingsNavigationMetadata } from '@/hooks/useSettingsNavigationMetadata'
 import type { SettingsNavInstallStatus } from '@/lib/settings-navigation-types'
@@ -23,18 +23,32 @@ export function useSettingsNavigationModel(
   interactions: SettingsInteractionController
 ) {
   // Why: recompute scrollback mode only when the row value changes, not on every settings mutation.
-  if (model.settings?.terminalScrollbackRows !== model.prevScrollbackRows) {
-    model.setPrevScrollbackRows(model.settings?.terminalScrollbackRows)
-    if (model.settings) {
-      model.setScrollbackMode(
+  const scrollbackSettings = model.settings
+  const terminalScrollbackRows = scrollbackSettings?.terminalScrollbackRows
+  const prevScrollbackRows = model.prevScrollbackRows
+  const setPrevScrollbackRows = model.setPrevScrollbackRows
+  const setScrollbackMode = model.setScrollbackMode
+  useEffect(() => {
+    if (terminalScrollbackRows === prevScrollbackRows) {
+      return
+    }
+    setPrevScrollbackRows(terminalScrollbackRows)
+    if (scrollbackSettings) {
+      setScrollbackMode(
         SCROLLBACK_PRESETS_ROWS.includes(
-          model.settings.terminalScrollbackRows as (typeof SCROLLBACK_PRESETS_ROWS)[number]
+          scrollbackSettings.terminalScrollbackRows as (typeof SCROLLBACK_PRESETS_ROWS)[number]
         )
           ? 'preset'
           : 'custom'
       )
     }
-  }
+  }, [
+    prevScrollbackRows,
+    scrollbackSettings,
+    setPrevScrollbackRows,
+    setScrollbackMode,
+    terminalScrollbackRows
+  ])
 
   const applyTheme = useCallback((theme: 'system' | 'dark' | 'light') => {
     applyDocumentTheme(theme)

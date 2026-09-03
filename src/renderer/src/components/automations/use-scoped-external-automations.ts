@@ -78,7 +78,6 @@ export function useScopedExternalAutomations({
 }: ScopedExternalAutomationsInput): ScopedExternalAutomationsView {
   const [result, setResult] = useState(EMPTY_VIEW)
   const catalogEntriesRef = useRef(catalogEntries)
-  catalogEntriesRef.current = catalogEntries
   useExternalAutomationScopeRetention(scopeEntries)
 
   const scopes = useMemo(() => externalAutomationScopes(scopeEntries), [scopeEntries])
@@ -87,9 +86,14 @@ export function useScopedExternalAutomations({
     [scopes]
   )
   const scopesRef = useRef(scopes)
-  scopesRef.current = scopes
   const signatureRef = useRef(signature)
-  signatureRef.current = signature
+
+  useEffect(() => {
+    catalogEntriesRef.current = catalogEntries
+    scopesRef.current = scopes
+    signatureRef.current = signature
+  }, [catalogEntries, scopes, signature])
+
   // Seeded with the mount signature: the page's own mount refresh issues the
   // first load, and this must not duplicate it.
   const loadedSignatureRef = useRef(signature)

@@ -45,7 +45,10 @@ export function useSettingsInteractionController(model: SettingsStoreModel) {
     hasUnsavedCommitPromptChanges || hasUnsavedBranchPromptChanges
   // Why: the close guard registers once, so it reads latest dirty state from a ref instead of a lagging closure.
   const hasUnsavedSourceControlAiPromptChangesRef = useRef(hasUnsavedSourceControlAiPromptChanges)
-  hasUnsavedSourceControlAiPromptChangesRef.current = hasUnsavedSourceControlAiPromptChanges
+
+  useEffect(() => {
+    hasUnsavedSourceControlAiPromptChangesRef.current = hasUnsavedSourceControlAiPromptChanges
+  }, [hasUnsavedSourceControlAiPromptChanges])
 
   const writeSourceControlAiSettings = useCallback(
     (patch: SourceControlAiSettingsPatch): Promise<void> => {

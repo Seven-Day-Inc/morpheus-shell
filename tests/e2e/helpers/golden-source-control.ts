@@ -224,9 +224,6 @@ export async function openGoldenSourceControl(
     state.setRightSidebarOpen(true)
   })
   await page.getByRole('button', { name: /Source Control/ }).click()
-  await expect(page.getByRole('textbox', { name: 'Commit message' })).toBeVisible({
-    timeout: 10_000
-  })
   await expect
     .poll(
       () =>
@@ -239,4 +236,7 @@ export async function openGoldenSourceControl(
       { timeout: 10_000, message: 'Automatic Git status refresh did not complete' }
     )
     .toBe(true)
+  await expect(page.getByRole('textbox', { name: 'Commit message', exact: true })).toBeVisible({
+    timeout: 10_000
+  })
 }

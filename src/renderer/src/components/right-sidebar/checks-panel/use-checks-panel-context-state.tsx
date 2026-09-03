@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useState } from 'react'
 import { useAppStore } from '@/store'
 import { useNow } from '@/hooks/use-now'
 import { isFolderRepo } from '../../../../../shared/repo-kind'
@@ -123,15 +123,15 @@ export function useChecksPanelContextState(model: ChecksPanelContextStateInput) 
     [clearTitleInputFocusTimer]
   )
 
-  // Why: no key={worktreeId} remount (caused an IPC storm on Windows); reset branch-specific state during render (not useEffect) so it lands on the same paint.
+  // Why: no key={worktreeId} remount (caused an IPC storm on Windows).
   const [prevPanelContextKey, setPrevPanelContextKey] = useState(panelContextKey)
   const [prRefreshStateNow, setPrRefreshStateNow] = useState(() => Date.now())
   // Why: eligibility expires on wall time, independently of the PR refresh-state
   // timers, so the freshness gate needs its own tick. ChecksPanel is unmounted
   // (not hidden) when the panel closes, so the clock needs no visibility gate.
   const panelClockNow = useNow(30_000)
-  if (panelContextKey !== prevPanelContextKey) {
-    setPrevPanelContextKey(panelContextKey)
+
+  const resetPanelContext = useEffectEvent(() => {
     setEditingTitle(false)
     setTitleDraft('')
     setTitleSaving(false)
@@ -168,7 +168,15 @@ export function useChecksPanelContextState(model: ChecksPanelContextStateInput) 
       clearTimeout(gitStatusSnapshotRetryTimerRef.current)
       gitStatusSnapshotRetryTimerRef.current = null
     }
-  }
+  })
+
+  useEffect(() => {
+    if (panelContextKey === prevPanelContextKey) {
+      return
+    }
+    setPrevPanelContextKey(panelContextKey)
+    resetPanelContext()
+  }, [panelContextKey, prevPanelContextKey])
 
   const isFolder = repo ? isFolderRepo(repo) : false
   const prCacheKey =

@@ -78,7 +78,7 @@ export async function waitForActiveTerminalManager(page: Page, timeoutMs = 30_00
           if (!paneManagers) {
             return false
           }
-          return (paneManagers.get(tabId)?.getPanes?.().length ?? 0) > 0
+          return paneManagers.has(tabId)
         }, tabId)
       },
       {

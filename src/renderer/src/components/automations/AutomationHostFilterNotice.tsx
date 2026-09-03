@@ -46,7 +46,10 @@ export function AutomationHostLoadSummary({
   const [announced, setAnnounced] = useState<string>('')
   // Why a ref: a host joining or leaving must not re-announce an unchanged set of failures.
   const totalRef = useRef(totalHostCount)
-  totalRef.current = totalHostCount
+
+  useEffect(() => {
+    totalRef.current = totalHostCount
+  }, [totalHostCount])
 
   useEffect(() => {
     setAnnounced(automationHostLoadSummaryMessage(failedHostCount, totalRef.current) ?? '')

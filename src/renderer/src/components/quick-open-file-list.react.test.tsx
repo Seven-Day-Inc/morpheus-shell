@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { act, createElement } from 'react'
+import { act, createElement, useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FolderWorkspace } from '../../../shared/folder-workspace-types'
@@ -105,7 +105,10 @@ function HookProbe({
   query?: string
   worktreeId: string | null
 }): null {
-  onState(useRuntimeFileListForWorktree({ enabled, worktreeId, query }))
+  const state = useRuntimeFileListForWorktree({ enabled, worktreeId, query })
+  useEffect(() => {
+    onState(state)
+  }, [onState, state])
   return null
 }
 

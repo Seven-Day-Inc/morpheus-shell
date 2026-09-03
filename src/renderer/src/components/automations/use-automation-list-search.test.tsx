@@ -34,6 +34,7 @@ type SearchResult = ReturnType<typeof useAutomationListSearch>
 let container: HTMLDivElement
 let root: Root
 let latest: SearchResult | null = null
+const ignoreSelection = (): void => undefined
 
 function Harness({ query, rows }: { query: string; rows: readonly AutomationListRow[] }): null {
   latest = useAutomationListSearch({
@@ -43,8 +44,8 @@ function Harness({ query, rows }: { query: string; rows: readonly AutomationList
     repoMap,
     selectedRowKey: null,
     selectedExternalKey: null,
-    selectAutomationRow: () => undefined,
-    selectExternalKey: () => undefined
+    selectAutomationRow: ignoreSelection,
+    selectExternalKey: ignoreSelection
   })
   return null
 }

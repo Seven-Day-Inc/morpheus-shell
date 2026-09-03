@@ -380,7 +380,10 @@ export default function AutomationsPage(): React.JSX.Element {
     scheduleWarning: null
   })
   const draftRef = useRef(draft)
-  draftRef.current = draft
+
+  useEffect(() => {
+    draftRef.current = draft
+  }, [draft])
 
   const hostCatalog = useAutomationHostCatalog({ failedAuthorityKeys })
   // Probing follows the selection, not the catalog: a Local selection must not
