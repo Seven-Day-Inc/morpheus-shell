@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { createHash } from 'node:crypto'
+import { scryptSync } from 'node:crypto'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
@@ -226,8 +226,13 @@ async function addClaudeAccount({ client, json }: HandlerContext): Promise<void>
         configDir,
         ...(process.platform === 'darwin'
           ? {
+              // The field name is retained for old runtimes; its value is an opaque 32-byte digest.
               previousLegacyCredentialsSha256: legacyCredentials
-                ? createHash('sha256').update(legacyCredentials).digest('hex')
+                ? scryptSync(
+                    legacyCredentials,
+                    'orca-managed-account-legacy-credentials-v1',
+                    32
+                  ).toString('hex')
                 : null
             }
           : {})

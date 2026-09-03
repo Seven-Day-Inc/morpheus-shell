@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import * as ExpoCrypto from 'expo-crypto'
 import { createConnectionLogStore } from './connection-log-buffer'
 import type { ConnectionLogEntry } from './types'
 
 const STORAGE_PREFIX = 'orca.mobile.connection-log.v1.'
-const clientSessionId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+const clientSessionId = ExpoCrypto.randomUUID()
 const sessionStartedHosts = new Set<string>()
 
 export const connectionLogStore = createConnectionLogStore(200, {

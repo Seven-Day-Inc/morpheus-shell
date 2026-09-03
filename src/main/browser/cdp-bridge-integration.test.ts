@@ -107,7 +107,7 @@ function createMockGuest(
         }
         navHistoryId++
         currentUrl = targetUrl
-        if (targetUrl.includes('search.example.com')) {
+        if (new URL(targetUrl).hostname === 'search.example.com') {
           currentTitle = 'Search'
           currentTree = SEARCH_PAGE_TREE
         } else {

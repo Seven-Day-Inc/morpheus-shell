@@ -2,12 +2,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ConnectionLogEntry } from './types'
 
+const expoCrypto = vi.hoisted(() => ({ randomUUID: vi.fn() }))
+
 vi.mock('@react-native-async-storage/async-storage', () => ({
   default: {
     getItem: vi.fn(),
     setItem: vi.fn()
   }
 }))
+
+vi.mock('expo-crypto', () => ({ randomUUID: expoCrypto.randomUUID }))
 
 describe('persisted connection log store', () => {
   beforeEach(() => {
@@ -16,6 +20,7 @@ describe('persisted connection log store', () => {
     vi.mocked(AsyncStorage.getItem).mockReset()
     vi.mocked(AsyncStorage.setItem).mockReset()
     vi.mocked(AsyncStorage.setItem).mockResolvedValue(undefined)
+    expoCrypto.randomUUID.mockReset().mockReturnValue('connection-session-id')
   })
 
   afterEach(() => {

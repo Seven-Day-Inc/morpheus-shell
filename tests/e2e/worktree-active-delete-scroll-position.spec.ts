@@ -237,23 +237,7 @@ test('deleting the active scrolled worktree preserves position and closes the ro
     `[data-worktree-sidebar] [data-worktree-id=${JSON.stringify(belowId)}]`
   )
   await pauseForVisualProof(orcaPage)
-  await target.evaluate((element) => {
-    const scope = element.querySelector<HTMLElement>(
-      '[data-worktree-context-menu-scope="worktree"]'
-    )
-    if (!scope) {
-      throw new Error('Worktree context-menu scope is unavailable')
-    }
-    scope.dispatchEvent(
-      new MouseEvent('contextmenu', {
-        bubbles: true,
-        button: 2,
-        cancelable: true,
-        clientX: scope.getBoundingClientRect().left + 10,
-        clientY: scope.getBoundingClientRect().top + 10
-      })
-    )
-  })
+  await target.locator('[data-worktree-context-menu-scope="worktree"]').click({ button: 'right' })
   const deleteItem = orcaPage.getByRole('menuitem', { name: 'Delete', exact: true })
   await expect(deleteItem).toBeVisible()
   await expect(deleteItem).toBeInViewport()

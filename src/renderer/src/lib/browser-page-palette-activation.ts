@@ -52,10 +52,10 @@ export function activateBrowserPagePaletteResult({
     : 'webview'
 
   const targetHostId = executionHostId ?? worktree.hostId
-  const activated = activateAndRevealWorktree(
-    worktree.id,
-    targetHostId ? { executionHostId: targetHostId } : {}
-  )
+  const activated = activateAndRevealWorktree(worktree.id, {
+    ...(targetHostId ? { executionHostId: targetHostId } : {}),
+    providesInitialSurface: true
+  })
   if (!activated) {
     return { status: 'failed', reason: 'missing-worktree' }
   }

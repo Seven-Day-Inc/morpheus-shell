@@ -187,8 +187,15 @@ function hookEnvironment(extraEnv: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
   }
 }
 
-function runPosixHook(command: string, extraEnv: NodeJS.ProcessEnv = {}): Promise<HookRun> {
-  return runHookProcess('/bin/sh', ['-c', command], hookEnvironment(extraEnv))
+async function runPosixHook(script: string, extraEnv: NodeJS.ProcessEnv = {}): Promise<HookRun> {
+  const scriptDir = mkdtempSync(join(tmpdir(), 'orca-hook-stdin-posix-'))
+  const scriptPath = join(scriptDir, 'hook.sh')
+  writeFileSync(scriptPath, script, { mode: 0o700 })
+  try {
+    return await runHookProcess('/bin/sh', [scriptPath], hookEnvironment(extraEnv))
+  } finally {
+    rmSync(scriptDir, { recursive: true, force: true })
+  }
 }
 
 async function generatePosixScripts(): Promise<Map<string, string>> {
@@ -352,12 +359,12 @@ describe('Windows managed hook stdin structure', () => {
           const result = await runHookProcess(executable, args, hookEnvironment())
           expect(result.exitCode, `${fileName} exit code`).toBe(0)
           // Why (#11549 class): every Windows-local hook exits before owning stdin when the
-          // Orca env is missing, so the writer may break — EPIPE, or ECONNRESET when Windows
+          // Orca env is missing, so the writer may break — EPIPE, ECONNRESET, or EOF when Windows
           // tears the pipe down first. hookEnvironment() strips every ORCA_* var, so this
           // relaxation only ever covers the missing-env path — a happy-path case added to
           // this loop must not reuse it.
           for (const error of result.stdinErrors) {
-            expect(['EPIPE', 'ECONNRESET'], `${fileName} stdin error`).toContain(error.code)
+            expect(['EPIPE', 'ECONNRESET', 'EOF'], `${fileName} stdin error`).toContain(error.code)
           }
         }
 

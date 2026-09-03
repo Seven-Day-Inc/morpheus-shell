@@ -1,6 +1,6 @@
 import type * as NodeCliCommandResolutionModule from '../../shared/node-cli-command-resolution'
 import { EventEmitter } from 'node:events'
-import { createHash } from 'node:crypto'
+import { scryptSync } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { delimiter } from 'node:path'
 import type * as NodeFs from 'node:fs'
@@ -301,9 +301,11 @@ describe('account CLI handlers', () => {
     expect(writeKeychainMock).toHaveBeenCalledWith('legacy-credentials')
     expect(callMock).toHaveBeenCalledWith('accounts.addClaudeFromConfigDir', {
       configDir,
-      previousLegacyCredentialsSha256: createHash('sha256')
-        .update('legacy-credentials')
-        .digest('hex')
+      previousLegacyCredentialsSha256: scryptSync(
+        'legacy-credentials',
+        'orca-managed-account-legacy-credentials-v1',
+        32
+      ).toString('hex')
     })
     expect(existsSync(configDir)).toBe(false)
   })

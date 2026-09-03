@@ -157,7 +157,9 @@ describe('activateBrowserPagePaletteResult', () => {
     })
 
     const state = useAppStore.getState()
-    expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-1', {})
+    expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-1', {
+      providesInitialSurface: true
+    })
     expect(state.activeBrowserTabId).toBe('ws-1')
     expect(state.activeTabType).toBe('browser')
     expect(state.browserTabsByWorktree['wt-1'][0].activePageId).toBe('page-1')
@@ -171,7 +173,8 @@ describe('activateBrowserPagePaletteResult', () => {
     activateBrowserPagePaletteResult(target)
 
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-1', {
-      executionHostId: 'ssh:host-1'
+      executionHostId: 'ssh:host-1',
+      providesInitialSurface: true
     })
   })
 
@@ -191,7 +194,8 @@ describe('activateBrowserPagePaletteResult', () => {
       activateBrowserPagePaletteResult({ ...target, executionHostId: 'runtime:paired-host' }).status
     ).toBe('activated')
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-1', {
-      executionHostId: 'runtime:paired-host'
+      executionHostId: 'runtime:paired-host',
+      providesInitialSurface: true
     })
   })
 
@@ -211,7 +215,8 @@ describe('activateBrowserPagePaletteResult', () => {
       activateBrowserPagePaletteResult({ pageId: 'page-1', workspaceId: 'ws-1', worktreeId })
     ).toMatchObject({ status: 'activated' })
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith(worktreeId, {
-      executionHostId: 'ssh:host-1'
+      executionHostId: 'ssh:host-1',
+      providesInitialSurface: true
     })
   })
 

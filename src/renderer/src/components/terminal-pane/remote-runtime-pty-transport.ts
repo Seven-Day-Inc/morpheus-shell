@@ -86,7 +86,7 @@ const REMOTE_TERMINAL_INPUT_FLUSH_MS = 8
 const REMOTE_TERMINAL_VIEWPORT_FLUSH_MS = 33
 const REMOTE_RUNTIME_MAX_PENDING_QUERY_REPLIES = 64
 const HOST_SESSION_ATTACH_POLL_MS = 150
-const HOST_SESSION_REPLACEMENT_POLL_MAX_MS = 1_000
+const HOST_SESSION_POLL_MAX_MS = 1_000
 const HOST_SESSION_ATTACH_TIMEOUT_MS = 15_000
 const HOST_SESSION_INVENTORY_MAX_WINDOWS_PER_RECOVERY = 2
 const HOST_SESSION_SAME_HANDLE_END_REUSE_LIMIT = 2
@@ -604,34 +604,66 @@ export function createRemoteRuntimePtyTransport(
     }
 
     const startedAt = Date.now()
+    let pollMs = HOST_SESSION_ATTACH_POLL_MS
+    let nextRequest: 'activate' | 'list' = 'list'
+    let activationOutcomeUnknown = false
     while (isCurrent()) {
       const remainingMs = HOST_SESSION_ATTACH_TIMEOUT_MS - (Date.now() - startedAt)
       if (remainingMs <= 0) {
         return undefined
       }
-      // Why: host mirrors can publish before their PTY handle is ready, but a stuck pending surface must not poll forever.
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.min(HOST_SESSION_ATTACH_POLL_MS, remainingMs))
-      )
-      const listed = await listRemoteRuntimeSessionTabsDeduped({
-        environmentId: currentRuntimeEnvironmentId,
-        worktreeId,
-        load: () =>
-          callRuntime<RuntimeMobileSessionTabsResult>('session.tabs.list', {
-            worktree
-          })
-      })
-      const handle = findReadyHostSessionHandle(listed, hostTabId)
+      await new Promise((resolve) => setTimeout(resolve, Math.min(pollMs, remainingMs)))
+      pollMs = Math.min(pollMs * 2, HOST_SESSION_POLL_MAX_MS)
+      const requestRemainingMs = HOST_SESSION_ATTACH_TIMEOUT_MS - (Date.now() - startedAt)
+      if (requestRemainingMs <= 0) {
+        return undefined
+      }
+      const request = nextRequest
+      let snapshot: RuntimeMobileSessionTabsResult
+      try {
+        snapshot =
+          request === 'list'
+            ? await listRemoteRuntimeSessionTabsDeduped({
+                environmentId: currentRuntimeEnvironmentId,
+                worktreeId,
+                load: () =>
+                  callRuntime<RuntimeMobileSessionTabsResult>(
+                    'session.tabs.list',
+                    { worktree },
+                    requestRemainingMs
+                  )
+              })
+            : await activateHostSessionSurface(hostTabId, worktree, 'user', requestRemainingMs)
+      } catch (error) {
+        if (request === 'list') {
+          throw error
+        }
+        // An unobserved activation may still have created the host PTY, so never replay it.
+        activationOutcomeUnknown = true
+        nextRequest = 'list'
+        continue
+      }
+      const handle = findReadyHostSessionHandle(snapshot, hostTabId)
       if (handle) {
         return handle
       }
-      if (!hasHostSessionTerminalSurface(listed, hostTabId)) {
+      if (request === 'activate') {
+        // An activation reply can precede publication; inventory decides absence.
+        nextRequest = 'list'
+        continue
+      }
+      if (!hasHostSessionTerminalSurface(snapshot, hostTabId)) {
         const siblingStillExists =
-          getHostSessionTerminalSurfaces(listed, hostTabId, {
+          getHostSessionTerminalSurfaces(snapshot, hostTabId, {
             matchRequestedLeaf: false
           }).length > 0
-        return siblingStillExists ? false : null
+        if (siblingStillExists) {
+          return false
+        }
+        return null
       }
+      // Only activation materializes a persisted host terminal after relaunch.
+      nextRequest = activationOutcomeUnknown ? 'list' : 'activate'
     }
     return undefined
   }
@@ -798,9 +830,24 @@ export function createRemoteRuntimePtyTransport(
       }
       // Why: a stale response can precede its replacement; bounded backoff avoids retrying the stale handle in a hot loop.
       await new Promise((resolve) => setTimeout(resolve, Math.min(pollMs, remainingMs)))
-      pollMs = Math.min(pollMs * 2, HOST_SESSION_REPLACEMENT_POLL_MAX_MS)
+      pollMs = Math.min(pollMs * 2, HOST_SESSION_POLL_MAX_MS)
     }
     return { handle: undefined, inventoryFailed: false }
+  }
+
+  function replayLastTransportEntryPoint(): boolean {
+    if (destroyed || terminalEnded || connected) {
+      return false
+    }
+    if (lastAttachOptions) {
+      transport.attach(lastAttachOptions)
+      return true
+    }
+    if (lastConnectOptions) {
+      void transport.connect(lastConnectOptions)
+      return true
+    }
+    return false
   }
 
   async function attachHostSessionMirror(
@@ -818,17 +865,24 @@ export function createRemoteRuntimePtyTransport(
       (expectedLifecycleEpoch === undefined || expectedLifecycleEpoch === lifecycleEpoch)
     const hostTabId = toHostSessionTabId(tabId)
     const hostHandle = await waitForHostSessionHandleWithRecovery(hostTabId, isCurrent)
-    if (hostHandle === undefined || !isCurrent()) {
+    if (!isCurrent()) {
       return undefined
     }
-    if (hostHandle === null) {
-      surfaceErrorMessage('Remote terminal was closed.')
-      return undefined
-    }
-    if (!hostHandle || !isCurrent()) {
-      if (isCurrent()) {
-        surfaceErrorMessage('Remote terminal was closed.')
+    if (hostHandle === undefined) {
+      connecting = false
+      if (recovery.currentPhase !== 'disconnected') {
+        const recoveryEpoch = recovery.isActive ? recovery.currentEpoch : recovery.begin()
+        recovery.parkRetryForExternalTrigger(recoveryEpoch, () => {
+          replayLastTransportEntryPoint()
+        })
       }
+      emitRecoveryState()
+      return undefined
+    }
+    if (!hostHandle) {
+      connecting = false
+      emitRecoveryState()
+      surfaceErrorMessage('Remote terminal was closed.')
       return undefined
     }
 
@@ -2493,12 +2547,7 @@ export function createRemoteRuntimePtyTransport(
         recovery.currentPhase === 'disconnected'
       ) {
         recovery.cancel()
-        if (lastAttachOptions) {
-          transport.attach(lastAttachOptions)
-          return true
-        }
-        if (lastConnectOptions) {
-          void transport.connect(lastConnectOptions)
+        if (replayLastTransportEntryPoint()) {
           return true
         }
       }

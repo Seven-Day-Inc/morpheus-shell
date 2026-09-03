@@ -170,8 +170,7 @@ describe('registerPtyHandlers', () => {
         vi.useRealTimers()
       }
     })
-    it('surfaces the hidden-yet-visible contradiction in the snapshot and warns on drop', async () => {
-      // Why: field snapshot v1.4.124-rc.2.perf — aggregates couldn't tell if the visible pane was hidden-gated; overlap counter + warn makes it decisive.
+    it('keeps a visible PTY live when a stale hidden handoff mark remains', async () => {
       vi.useFakeTimers()
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const daemon = installObservableDaemonTestProvider()
@@ -185,23 +184,24 @@ describe('registerPtyHandlers', () => {
         const setHidden = getPtySetHiddenRendererPtyListener()
         const setVisible = getPtySetRendererPtyVisibleListener()
 
-        // The two visibility signals contradict: pane reports visible while the hidden-delivery gate still holds it.
+        // A pane can become visible before a prior handoff's hidden claim unwinds.
         setVisible(null, { id: result.id, visible: true })
         setHidden(null, { id: result.id, hidden: true })
-        daemon.emitData(result.id, 'starved visible output')
+        daemon.emitData(result.id, 'visible output')
         vi.advanceTimersByTime(50)
 
         expect(getPtyRendererDeliveryDebugSnapshot()).toMatchObject({
           hiddenDeliveryGatedPtyCount: 1,
           hiddenDeliveryGatedVisiblePtyCount: 1,
-          hiddenDeliveryDroppedChars: 'starved visible output'.length
+          hiddenDeliveryDroppedChars: 0
         })
-        expect(warnSpy).toHaveBeenCalledWith(
-          '[pty] hidden-delivery gate is dropping bytes for a visible/active pty',
-          expect.objectContaining({ id: redactPtyIdForDiagnostics(result.id), visible: true })
-        )
+        expect(mainWindow.webContents.send).toHaveBeenCalledWith('pty:data', {
+          id: result.id,
+          data: 'visible output'
+        })
+        expect(warnSpy).not.toHaveBeenCalled()
 
-        // Unhiding resolves the contradiction.
+        // Unhiding still clears the stale marker.
         setHidden(null, { id: result.id, hidden: false })
         expect(getPtyRendererDeliveryDebugSnapshot()).toMatchObject({
           hiddenDeliveryGatedPtyCount: 0,
@@ -212,7 +212,7 @@ describe('registerPtyHandlers', () => {
         vi.useRealTimers()
       }
     })
-    it('embeds one-paste freeze diagnostics: per-pty table and breadcrumb history', async () => {
+    it('reports a visible hidden-marked PTY without recording a dropped chunk', async () => {
       vi.useFakeTimers()
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const daemon = installObservableDaemonTestProvider()
@@ -240,14 +240,14 @@ describe('registerPtyHandlers', () => {
         expect(entry).toMatchObject({
           hidden: true,
           visible: true,
-          inFlightChars: 0,
+          inFlightChars: 'starved visible output'.length,
           pendingChars: 0
         })
         // Why redaction is pinned: daemon session ids embed worktree paths, so the report must never carry the raw id.
         expect(diagnostics.perPty.some((candidate) => candidate.id === result.id)).toBe(false)
         const breadcrumbKinds = diagnostics.breadcrumbs.map((crumb) => crumb.kind)
         expect(breadcrumbKinds).toContain('gate-mark')
-        expect(breadcrumbKinds).toContain('hidden-drop-visible')
+        expect(breadcrumbKinds).not.toContain('hidden-drop-visible')
       } finally {
         warnSpy.mockRestore()
         vi.useRealTimers()

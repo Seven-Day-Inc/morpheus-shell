@@ -6,7 +6,7 @@ import {
 
 function editorScript(): string {
   const html = buildMobileRichMarkdownEditorHtml()
-  const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1]
+  const script = html.match(/<script>([\s\S]*)<\/script>/i)?.[1]
   expect(script).toBeTruthy()
   return script ?? ''
 }

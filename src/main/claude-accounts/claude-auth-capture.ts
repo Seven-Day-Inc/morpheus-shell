@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { scryptSync } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { readActiveClaudeKeychainCredentialsStrict } from './keychain'
@@ -98,8 +98,11 @@ export async function readCapturedClaudeCredentials(
       previousLegacyCredentialsSha256 === undefined
         ? legacyCredentialsJson !== previousLegacyKeychain
         : legacyCredentialsJson !== null &&
-          createHash('sha256').update(legacyCredentialsJson).digest('hex') !==
-            previousLegacyCredentialsSha256
+          scryptSync(
+            legacyCredentialsJson,
+            'orca-managed-account-legacy-credentials-v1',
+            32
+          ).toString('hex') !== previousLegacyCredentialsSha256
     if (legacyCredentialsJson && legacyChanged) {
       return legacyCredentialsJson
     }

@@ -12,6 +12,7 @@ const SURFACE_PROVIDING_CALLERS = [
   'src/renderer/src/components/feature-wall/FeatureWallBrowserAction.tsx',
   'src/renderer/src/components/sidebar/run-worktree-delete-with-toast.ts',
   'src/renderer/src/components/terminal-pane/terminal-file-open-routing.ts',
+  'src/renderer/src/lib/browser-page-palette-activation.ts',
   'src/renderer/src/lib/fix-checks-agent-launch.ts',
   'src/renderer/src/lib/workspace-port-actions.ts'
 ]

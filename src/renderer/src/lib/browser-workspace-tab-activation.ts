@@ -16,12 +16,14 @@ export function activateBrowserWorkspaceTab(params: {
   pageId?: string
 }): boolean {
   const state = useAppStore.getState()
-  const unifiedTab = (state.unifiedTabsByWorktree[params.worktreeId] ?? []).find(
-    (candidate) =>
-      candidate.contentType === 'browser' &&
-      candidate.entityId === params.workspaceId &&
-      (params.executionHostId === undefined || candidate.executionHostId === params.executionHostId)
+  const browserTabs = (state.unifiedTabsByWorktree[params.worktreeId] ?? []).filter(
+    (candidate) => candidate.contentType === 'browser' && candidate.entityId === params.workspaceId
   )
+  const unifiedTab =
+    params.executionHostId === undefined
+      ? browserTabs[0]
+      : (browserTabs.find((candidate) => candidate.executionHostId === params.executionHostId) ??
+        browserTabs.find((candidate) => candidate.executionHostId === undefined))
   if (!unifiedTab) {
     return false
   }

@@ -21,7 +21,7 @@ export type SkillScanRoot = Omit<SkillDiscoverySource, 'exists' | 'skippedReason
 type SkillDiscoveryPathApi = Pick<typeof posix, 'basename' | 'join'>
 
 export function stablePathId(pathValue: string): string {
-  return createHash('sha1').update(pathValue).digest('hex').slice(0, 16)
+  return createHash('sha256').update(pathValue).digest('hex').slice(0, 16)
 }
 
 // Skill classification and ordering are identical for native and WSL discovery;

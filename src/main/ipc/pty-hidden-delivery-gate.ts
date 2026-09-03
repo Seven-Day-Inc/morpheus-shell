@@ -10,6 +10,7 @@
  * interest, which suppresses the gate for that PTY.
  */
 import type { GlobalSettings } from '../../shared/global-settings-types'
+import { activeRendererPtys, visibleRendererPtys } from './pty/delivery/visibility-state'
 
 export type HiddenPtyDeliveryGateSettings = Pick<
   GlobalSettings,
@@ -84,7 +85,11 @@ export function shouldDropHiddenRendererPtyData(
   return (
     isHiddenPtyDeliveryGateEnabled(settings) &&
     hiddenRendererPtys.has(id) &&
-    !deliveryInterestRendererPtys.has(id)
+    !deliveryInterestRendererPtys.has(id) &&
+    // Renderer visibility is a stronger delivery claim than a stale hidden
+    // handoff mark: failing open keeps a visible terminal from losing input.
+    !visibleRendererPtys.has(id) &&
+    !activeRendererPtys.has(id)
   )
 }
 
