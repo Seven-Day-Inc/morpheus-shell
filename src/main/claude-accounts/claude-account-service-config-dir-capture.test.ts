@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createHash } from 'node:crypto'
+import { scryptSync } from 'node:crypto'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -183,9 +183,11 @@ describe('ClaudeAccountService.addAccountFromConfigDir', () => {
     )
 
     await service.addAccountFromConfigDir(sourceDir, {
-      previousLegacyCredentialsSha256: createHash('sha256')
-        .update(previousCredentials)
-        .digest('hex')
+      previousLegacyCredentialsSha256: scryptSync(
+        previousCredentials,
+        'orca-managed-account-legacy-credentials-v1',
+        32
+      ).toString('hex')
     })
 
     expect(writeManagedClaudeKeychainCredentials).toHaveBeenCalledWith(

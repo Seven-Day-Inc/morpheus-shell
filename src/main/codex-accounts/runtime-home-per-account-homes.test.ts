@@ -221,7 +221,7 @@ describe('CodexRuntimeHomeService', () => {
     const { CodexRuntimeHomeService } = await import('./runtime-home-service')
     const service = new CodexRuntimeHomeService(store as never)
 
-    expect(service.prepareForRateLimitFetch()).toBe(home1)
+    expect(service.prepareForRateLimitFetch()).toEqual({ kind: 'ready', codexHomePath: home1 })
   })
 
   it('preserves a managed selection whose auth.json is temporarily missing', async () => {
@@ -253,7 +253,7 @@ describe('CodexRuntimeHomeService', () => {
     const service = new CodexRuntimeHomeService(store as never)
 
     expect(service.prepareForCodexLaunch()).toBe(brokenHome)
-    expect(service.prepareForRateLimitFetch()).toBe(brokenHome)
+    expect(service.prepareForRateLimitFetch()).toEqual({ kind: 'ready', codexHomePath: brokenHome })
     expect(store.getSettings().activeCodexManagedAccountId).toBe('account-1')
   })
 
@@ -303,6 +303,35 @@ describe('CodexRuntimeHomeService', () => {
     const discovery = service.getHostCodexHomePathsForSessionDiscovery()
     expect(discovery).toContain(getRuntimeCodexHomePath())
     expect(discovery).toContain(home1)
+  })
+
+  it('includes WSL account homes in session discovery', async () => {
+    const wslHome =
+      '\\\\wsl.localhost\\Ubuntu\\home\\me\\.local\\share\\orca\\codex-accounts\\account-1\\home'
+    const store = createStore(
+      createSettings({
+        codexManagedAccounts: [
+          {
+            id: 'account-1',
+            email: 'wsl@example.com',
+            managedHomePath: wslHome,
+            managedHomeRuntime: 'wsl',
+            wslDistro: 'Ubuntu',
+            wslLinuxHomePath: '/home/me/.local/share/orca/codex-accounts/account-1/home',
+            providerAccountId: null,
+            workspaceLabel: null,
+            workspaceAccountId: null,
+            createdAt: 1,
+            updatedAt: 1,
+            lastAuthenticatedAt: 1
+          }
+        ]
+      })
+    )
+    const { CodexRuntimeHomeService } = await import('./runtime-home-service')
+    const service = new CodexRuntimeHomeService(store as never)
+
+    expect(service.getHostCodexHomePathsForSessionDiscovery()).toContain(wslHome)
   })
 
   it('surfaces per-account rollouts for session discovery on the mirror lane', async () => {
@@ -435,12 +464,18 @@ describe('CodexRuntimeHomeService', () => {
     settings.activeCodexManagedAccountIdsByRuntime = { host: null, wsl: {} }
     const syncSpy = vi.spyOn(service, 'syncForCurrentSelection')
 
-    expect(service.prepareForRateLimitFetch()).toBe(getSystemCodexHomePath())
+    expect(service.prepareForRateLimitFetch()).toEqual({
+      kind: 'ready',
+      codexHomePath: getSystemCodexHomePath()
+    })
     expect(readFileSync(join(managedHomePath, 'auth.json'), 'utf-8')).toBe(managedAuth)
     expect(readFileSync(getSystemCodexAuthPath(), 'utf-8')).toBe(systemAuth)
     expect(syncSpy).not.toHaveBeenCalled()
 
-    expect(service.prepareForRateLimitFetch()).toBe(getSystemCodexHomePath())
+    expect(service.prepareForRateLimitFetch()).toEqual({
+      kind: 'ready',
+      codexHomePath: getSystemCodexHomePath()
+    })
     expect(service.prepareForCodexLaunch()).toBeNull()
     expect(syncSpy).not.toHaveBeenCalled()
   })

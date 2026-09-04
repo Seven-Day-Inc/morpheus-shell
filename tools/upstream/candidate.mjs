@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { gitExitCode, runGitCommand } from './git-command-runner.mjs'
@@ -9,7 +9,7 @@ import { gitExitCode, runGitCommand } from './git-command-runner.mjs'
 const DEFAULT_PIN_REF = 'pin/v1.4.183'
 const DEFAULT_REMOTE = 'upstream'
 const TAG_NAMESPACE = 'refs/upstream/tags'
-const REPORT_FILENAME = 'CANDIDATE-REPORT.md'
+const REPORT_FILENAME = path.join('docs', 'chat-transport', 'CANDIDATE-REPORT.md')
 
 // Thin-fork rule: fork surfaces live in added modules; candidate merges may not rewrite panels.
 
@@ -231,7 +231,7 @@ function reportCommitMessage(tag, outcome) {
 
 /**
  * Creates a candidate from the pin, merges a single upstream tag, and commits
- * CANDIDATE-REPORT.md. A conflict is aborted and reported rather than resolved.
+ * docs/chat-transport/CANDIDATE-REPORT.md. A conflict is aborted and reported rather than resolved.
  */
 export function assessCandidate({
   tag,
@@ -243,6 +243,7 @@ export function assessCandidate({
   git = runGitCommand,
   readFile = readFileSync,
   fileExists = existsSync,
+  makeDirectory = mkdirSync,
   writeFile = writeFileSync,
   runCommand = executeTestCommand,
   now = new Date()
@@ -307,6 +308,7 @@ export function assessCandidate({
     test,
     now
   })
+  makeDirectory(path.dirname(reportPath), { recursive: true })
   writeFile(reportPath, report, 'utf8')
   git(['add', '--', REPORT_FILENAME])
   git(['commit', '-m', reportCommitMessage(validatedTag, outcome)])

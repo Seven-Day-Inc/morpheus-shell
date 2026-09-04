@@ -8,7 +8,6 @@ import {
   type ActivityTerminalPortalTarget
 } from '../activity/activity-terminal-portal'
 import { shouldMountBackgroundWorktreeTab } from '../terminal/background-terminal-worktree-mount'
-import { useNativeChatToggleShortcut } from '../native-chat/use-native-chat-toggle-shortcut'
 import { TerminalOverlaySlot } from './TerminalOverlaySlot'
 import { useTerminalTabColdParking } from './use-terminal-tab-cold-parking'
 
@@ -59,8 +58,6 @@ const TerminalPaneOverlayLayer = memo(function TerminalPaneOverlayLayer({
   const consumeSuppressedPtyExit = useAppStore((state) => state.consumeSuppressedPtyExit)
   const setActiveWorktree = useAppStore((state) => state.setActiveWorktree)
   const reconcileWorktreeTabModel = useAppStore((state) => state.reconcileWorktreeTabModel)
-
-  useNativeChatToggleShortcut(worktreeId, isWorktreeActive)
 
   const leaveWorktreeIfEmpty = useCallback(() => {
     const state = useAppStore.getState()
@@ -133,9 +130,15 @@ const TerminalPaneOverlayLayer = memo(function TerminalPaneOverlayLayer({
   return (
     <>
       {terminalTabs
-        .filter((terminalTab) =>
-          shouldMountBackgroundWorktreeTab(backgroundMountTabIds, terminalTab.id)
-        )
+        .filter((terminalTab) => {
+          const assignment = assignments.get(terminalTab.id)
+          // Why: a selected terminal is a visible consumer, never merely a
+          // background wake target.
+          return (
+            (isWorktreeActive && assignment?.isActiveInGroup === true) ||
+            shouldMountBackgroundWorktreeTab(backgroundMountTabIds, terminalTab.id)
+          )
+        })
         .map((terminalTab) => {
           const assignment = assignments.get(terminalTab.id)
           const isVisible = Boolean(isWorktreeActive && assignment?.isActiveInGroup)

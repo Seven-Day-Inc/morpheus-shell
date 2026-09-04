@@ -6,6 +6,7 @@ import {
   installBrowserGlobals,
   writeStoredRuntimeEnvironment
 } from './web-preload-api-test-harness'
+import { RUNTIME_ENVIRONMENT_RECONNECTED_EVENT } from '../runtime/runtime-environment-recovery-event'
 
 describe('web runtime environment identity', () => {
   beforeEach(() => {
@@ -198,6 +199,8 @@ describe('web runtime environment identity', () => {
     }))
     const globals = installBrowserGlobals('Linux')
     writeStoredRuntimeEnvironment(globals.storage, 'web-server-a')
+    const reconnected = vi.fn()
+    globals.window.addEventListener(RUNTIME_ENVIRONMENT_RECONNECTED_EVENT, reconnected)
     const { installWebPreloadApi } = await import('./web-preload-api')
     installWebPreloadApi()
 
@@ -242,6 +245,7 @@ describe('web runtime environment identity', () => {
     expect(
       JSON.parse(globals.storage.getItem('orca.web.runtimeEnvironment.v1') ?? '{}')
     ).toMatchObject({ pairedDeviceId: 'paired-device-a' })
+    expect(reconnected).toHaveBeenCalledOnce()
   })
 
   it('fences a web runtime response that completes after manual disconnect', async () => {
@@ -524,5 +528,59 @@ describe('web runtime environment identity', () => {
       kind: 'access-link-invalid',
       message: 'Access grant rejected.'
     })
+  })
+
+  it('replaces API closures on reinstall while retaining the runtime client singleton', async () => {
+    let clientCount = 0
+    const call = vi.fn((method: string): Promise<RuntimeRpcResponse<unknown>> =>
+      Promise.resolve({
+        id: method,
+        ok: true,
+        result: { method },
+        _meta: { runtimeId: 'runtime-a' }
+      })
+    )
+    vi.doMock('./web-runtime-client', () => ({
+      WebRuntimeClient: class {
+        constructor() {
+          clientCount += 1
+        }
+
+        call = call
+
+        close(): void {}
+      }
+    }))
+    const globals = installBrowserGlobals('Linux')
+    writeStoredRuntimeEnvironment(globals.storage, 'web-server-a')
+    const { installWebPreloadApi } = await import('./web-preload-api')
+    installWebPreloadApi()
+    const firstApi = globals.window.api
+    const initialZoom = firstApi.ui.getZoomLevel()
+    firstApi.ui.setZoomLevel(initialZoom + 1)
+    await expect(firstApi.runtime.call({ method: 'status.first' })).resolves.toEqual({
+      id: 'status.first',
+      ok: true,
+      result: { method: 'status.first' },
+      _meta: { runtimeId: 'runtime-a' }
+    })
+    expect(
+      JSON.parse(globals.storage.getItem('orca.web.runtimeEnvironment.v1') ?? '{}')
+    ).toMatchObject({ runtimeId: 'runtime-a' })
+
+    installWebPreloadApi()
+    const secondApi = globals.window.api
+    await secondApi.runtime.call({ method: 'status.second' })
+    await firstApi.runtime.call({ method: 'status.old-capture' })
+
+    expect(secondApi).not.toBe(firstApi)
+    expect(secondApi.ui.getZoomLevel()).toBe(initialZoom)
+    expect(firstApi.ui.getZoomLevel()).toBe(initialZoom + 1)
+    expect(clientCount).toBe(1)
+    expect(call.mock.calls.map(([method]) => method)).toEqual([
+      'status.first',
+      'status.second',
+      'status.old-capture'
+    ])
   })
 })

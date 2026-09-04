@@ -157,7 +157,10 @@ describe('activateBrowserPagePaletteResult', () => {
     })
 
     const state = useAppStore.getState()
-    expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-1', {})
+    expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-1', {
+      notifyHostRuntime: false,
+      providesInitialSurface: true
+    })
     expect(state.activeBrowserTabId).toBe('ws-1')
     expect(state.activeTabType).toBe('browser')
     expect(state.browserTabsByWorktree['wt-1'][0].activePageId).toBe('page-1')
@@ -171,7 +174,31 @@ describe('activateBrowserPagePaletteResult', () => {
     activateBrowserPagePaletteResult(target)
 
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-1', {
-      executionHostId: 'ssh:host-1'
+      executionHostId: 'ssh:host-1',
+      notifyHostRuntime: false,
+      providesInitialSurface: true
+    })
+  })
+
+  it('activates an SSH worktree through its paired-runtime owner alias', () => {
+    seedStore({
+      worktreesByRepo: {
+        'repo-1': [
+          makeWorktree({
+            hostId: 'ssh:private-target',
+            runtimeOwnerEnvironmentId: 'paired-host'
+          })
+        ]
+      }
+    })
+
+    expect(
+      activateBrowserPagePaletteResult({ ...target, executionHostId: 'runtime:paired-host' }).status
+    ).toBe('activated')
+    expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('wt-1', {
+      executionHostId: 'runtime:paired-host',
+      notifyHostRuntime: false,
+      providesInitialSurface: true
     })
   })
 
@@ -181,14 +208,19 @@ describe('activateBrowserPagePaletteResult', () => {
       worktreesByRepo: {},
       folderWorkspaces: [makeFolderWorkspace({ executionHostId: 'ssh:host-1' })],
       browserTabsByWorktree: { [worktreeId]: [makeWorkspace({ worktreeId })] },
-      browserPagesByWorkspace: { 'ws-1': [makePage({ worktreeId })] }
+      browserPagesByWorkspace: { 'ws-1': [makePage({ worktreeId })] },
+      unifiedTabsByWorktree: { [worktreeId]: [makeBrowserTab({ worktreeId })] },
+      groupsByWorktree: { [worktreeId]: [makeGroup({ worktreeId })] },
+      activeGroupIdByWorktree: { [worktreeId]: 'group-1' }
     })
 
     expect(
       activateBrowserPagePaletteResult({ pageId: 'page-1', workspaceId: 'ws-1', worktreeId })
     ).toMatchObject({ status: 'activated' })
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith(worktreeId, {
-      executionHostId: 'ssh:host-1'
+      executionHostId: 'ssh:host-1',
+      notifyHostRuntime: false,
+      providesInitialSurface: true
     })
   })
 
@@ -315,12 +347,15 @@ describe('activateBrowserPagePaletteResult group focus', () => {
     expect(useAppStore.getState().activeGroupIdByWorktree['wt-1']).toBe('group-1')
   })
 
-  it('still activates the page when no unified tab backs the browser workspace', () => {
+  // Nothing renders the workspace without its unified tab, so reporting success
+  // would leave the previously active tab on screen.
+  it('fails instead of activating when no unified tab backs the browser workspace', () => {
     seedStore({ unifiedTabsByWorktree: {}, groupsByWorktree: { 'wt-1': [] } })
 
-    expect(activateBrowserPagePaletteResult(target)).toMatchObject({
-      status: 'activated'
+    expect(activateBrowserPagePaletteResult(target)).toEqual({
+      status: 'failed',
+      reason: 'missing-tab'
     })
-    expect(useAppStore.getState().activeBrowserTabId).toBe('ws-1')
+    expect(useAppStore.getState().activeBrowserTabId).toBeNull()
   })
 })

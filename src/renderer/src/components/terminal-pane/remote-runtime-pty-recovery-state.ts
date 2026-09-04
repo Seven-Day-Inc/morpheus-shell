@@ -124,12 +124,13 @@ export class RemoteRuntimePtyRecoveryState {
     this.clearRetryTimer()
   }
 
-  // Why: resume/online should fire an already-scheduled backoff immediately, not start a new epoch.
+  // Why: resume/online should fire an already-scheduled or externally parked retry immediately, not start a new epoch.
   retryNow(): boolean {
     if (this.pendingRetry === null || this.pendingEpoch === null) {
       return false
     }
-    if (this.phase !== 'backoff' && this.phase !== 'disconnected') {
+    const externallyParked = this.phase === 'recovering' && this.retryTimer === null
+    if (this.phase !== 'backoff' && this.phase !== 'disconnected' && !externallyParked) {
       return false
     }
     const retry = this.pendingRetry

@@ -10,6 +10,8 @@ import type {
   ExternalAutomationManager,
   ExternalAutomationRun
 } from '../../../../shared/automations-types'
+import type { ExternalAutomationScope } from './external-automation-scope-client'
+import { externalAutomationScopeKey } from './external-automation-scope-keys'
 import {
   formatExternalDate,
   getExternalRunStatusLabel,
@@ -31,6 +33,8 @@ export type ExternalAutomationRunPage = {
 }
 
 export type FetchExternalAutomationRuns = (input: {
+  /** The host the rows are read from; a manager ID alone cannot name one. */
+  scope: ExternalAutomationScope
   manager: ExternalAutomationManager
   job: ExternalAutomationJob
   page: number
@@ -38,6 +42,7 @@ export type FetchExternalAutomationRuns = (input: {
 }) => Promise<ExternalAutomationRun[] | ExternalAutomationRunPage>
 
 type ExternalAutomationRunTableProps = {
+  scope: ExternalAutomationScope
   manager: ExternalAutomationManager
   job: ExternalAutomationJob
   now: number
@@ -59,6 +64,7 @@ function normalizeRunPage(
 }
 
 export function ExternalAutomationRunTable({
+  scope,
   manager,
   job,
   now,
@@ -67,11 +73,18 @@ export function ExternalAutomationRunTable({
 }: ExternalAutomationRunTableProps): React.JSX.Element {
   const [tableState, setTableState] = useState(() => createExternalAutomationRunTableState(job))
   const [isLoading, setIsLoading] = useState(false)
+  const scopeRef = useRef(scope)
   const managerRef = useRef(manager)
   const jobRef = useRef(job)
 
-  managerRef.current = manager
-  jobRef.current = job
+  useEffect(() => {
+    scopeRef.current = scope
+    managerRef.current = manager
+    jobRef.current = job
+  }, [job, manager, scope])
+  // Refetch when the host changes, not just the job: the same manager and job ID
+  // can be a different machine's cron entry.
+  const scopeKey = externalAutomationScopeKey(scope)
 
   const resolvedTableState = resolveExternalAutomationRunTableState(tableState, job)
   if (resolvedTableState !== tableState) {
@@ -92,6 +105,7 @@ export function ExternalAutomationRunTable({
       fetchError: null
     }))
     void onFetchRuns({
+      scope: scopeRef.current,
       manager: managerRef.current,
       job: jobRef.current,
       page,
@@ -124,7 +138,7 @@ export function ExternalAutomationRunTable({
     return () => {
       cancelled = true
     }
-  }, [job.id, manager.id, onFetchRuns, page])
+  }, [job.id, manager.id, onFetchRuns, page, scopeKey])
 
   const fallbackRuns = job.runs
   const visibleRuns = onFetchRuns

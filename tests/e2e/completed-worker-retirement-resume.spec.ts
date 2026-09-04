@@ -5,9 +5,11 @@ import {
   waitForActivePanePtyId,
   waitForActiveTerminalManager
 } from './helpers/terminal'
+import { FAKE_AGENT_WINDOWS_SHELL } from './helpers/fake-agent-command-override'
 import {
   cleanupCompletedWorkerFixture,
   clearCompletedWorkerLedger,
+  completedWorkerFakeCodexCommand,
   completedWorkerLaunchEnv,
   listRuntimeTerminals,
   readCompletedWorkerDispatchCapability,
@@ -33,6 +35,24 @@ test.afterAll(() => {
   cleanupCompletedWorkerFixture()
 })
 
+async function waitForTerminalStartupRestorationReady(
+  orcaPage: Parameters<typeof waitForSessionReady>[0]
+): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        orcaPage.evaluate(() => {
+          const state = window.__store?.getState()
+          return Boolean(state?.workspaceSessionReady && state.terminalStartupRestorationReady)
+        }),
+      {
+        timeout: 30_000,
+        message: 'terminal startup restoration did not become ready'
+      }
+    )
+    .toBe(true)
+}
+
 for (const closeMode of ['terminal-close-cli', 'worker-release'] as const) {
   test(`completed background worker ${closeMode} retires resume authority before first activation`, async ({
     orcaPage,
@@ -45,12 +65,20 @@ for (const closeMode of ['terminal-close-cli', 'worker-release'] as const) {
     await ensureTerminalVisible(orcaPage)
     await waitForActiveTerminalManager(orcaPage)
     await waitForActivePanePtyId(orcaPage)
-    await orcaPage.evaluate(async () => {
-      await window.__store?.getState().updateSettings({
-        disabledTuiAgents: [],
-        terminalHiddenViewParking: false
-      })
-    })
+    await orcaPage.evaluate(
+      async ({ agentCommand, terminalWindowsShell }) => {
+        await window.__store?.getState().updateSettings({
+          agentCmdOverrides: { codex: agentCommand },
+          terminalWindowsShell,
+          disabledTuiAgents: [],
+          terminalHiddenViewParking: false
+        })
+      },
+      {
+        agentCommand: completedWorkerFakeCodexCommand,
+        terminalWindowsShell: FAKE_AGENT_WINDOWS_SHELL
+      }
+    )
 
     const userDataDir = await electronApp.evaluate(({ app }) => app.getPath('userData'))
     const isolatedHome = await electronApp.evaluate(({ app }) => app.getPath('home'))
@@ -181,6 +209,13 @@ for (const closeMode of ['terminal-close-cli', 'worker-release'] as const) {
         return dispatchCapability
       })
       .not.toBeNull()
+    await expect
+      .poll(() =>
+        readCompletedWorkerLedger()
+          .filter((event) => event.event === 'ack')
+          .map((event) => event.mode)
+      )
+      .toEqual(['bracketed'])
     if (!dispatchCapability) {
       throw new Error('Background worker did not receive its dispatch capability')
     }
@@ -192,7 +227,15 @@ for (const closeMode of ['terminal-close-cli', 'worker-release'] as const) {
     )
 
     await orcaPage.evaluate(
-      ({ paneKey, providerSessionId, tabId, terminalHandle, transcriptPath, worktreeId }) => {
+      ({
+        agentCommand,
+        paneKey,
+        providerSessionId,
+        tabId,
+        terminalHandle,
+        transcriptPath,
+        worktreeId
+      }) => {
         const state = window.__store?.getState()
         if (!state) {
           throw new Error('Renderer store unavailable')
@@ -206,7 +249,10 @@ for (const closeMode of ['terminal-close-cli', 'worker-release'] as const) {
         const recovery = {
           providerSession,
           launchConfig: {
-            agentCommand: 'codex',
+            // Why not bare 'codex': resume prefers the captured command over
+            // agentCmdOverrides, so a bare name would resolve the machine's real
+            // Codex off PATH and unpin the adoption leg this spec exercises.
+            agentCommand,
             agentArgs: '--dangerously-bypass-approvals-and-sandbox',
             agentEnv: {}
           }
@@ -229,6 +275,7 @@ for (const closeMode of ['terminal-close-cli', 'worker-release'] as const) {
         )
       },
       {
+        agentCommand: completedWorkerFakeCodexCommand,
         paneKey: workerPaneKey,
         providerSessionId: PROVIDER_SESSION_ID,
         tabId: worker.tabId,
@@ -240,7 +287,7 @@ for (const closeMode of ['terminal-close-cli', 'worker-release'] as const) {
 
     const expectedRecovery = {
       origin: 'live',
-      state: 'working',
+      state: 'done',
       providerSessionId: PROVIDER_SESSION_ID
     }
     await expect
@@ -439,6 +486,7 @@ for (const closeMode of ['terminal-close-cli', 'worker-release'] as const) {
 
     await orcaPage.reload()
     await waitForSessionReady(orcaPage)
+    await waitForTerminalStartupRestorationReady(orcaPage)
 
     const beforeActivation = await orcaPage.evaluate((worktreeId) => {
       const state = window.__store?.getState()
@@ -458,6 +506,7 @@ for (const closeMode of ['terminal-close-cli', 'worker-release'] as const) {
     await expect
       .poll(() => orcaPage.evaluate(() => window.__store?.getState().activeWorktreeId))
       .toBe(targetWorktreeId)
+    await ensureTerminalVisible(orcaPage)
     await waitForActiveTerminalManager(orcaPage)
     await waitForActivePanePtyId(orcaPage)
     const activatedPane = await waitForActivePaneHookDescriptor(orcaPage)

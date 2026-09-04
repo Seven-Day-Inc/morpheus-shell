@@ -1,5 +1,5 @@
-import { useRef } from 'react'
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useMemo, useRef } from 'react'
+import { FlatList, StyleSheet, Text, View, type ListRenderItemInfo } from 'react-native'
 import type { ConnectionLogEntry } from '../transport/types'
 import { colors, radii, spacing, typography } from '../theme/mobile-theme'
 
@@ -8,6 +8,7 @@ type Props = {
   // Tag printed before the first entry so it's clear what's being logged
   // (e.g. 'Pairing' vs 'Reconnect').
   title?: string
+  fillAvailableHeight?: boolean
 }
 
 const LEVEL_COLOR: Record<ConnectionLogEntry['level'], string> = {
@@ -37,43 +38,72 @@ function formatTime(ts: number, baseTs: number): string {
   return `+${Math.round(elapsed)}s`
 }
 
-export function ConnectionLog({ entries, title }: Props) {
-  const scrollRef = useRef<ScrollView | null>(null)
+type RenderedConnectionLogEntry = {
+  elapsed: string
+  entry: ConnectionLogEntry
+  renderKey: string
+}
+
+function buildRenderedEntries(entries: ConnectionLogEntry[]): RenderedConnectionLogEntry[] {
+  const baseTs = entries[0]?.ts ?? 0
+  const keyOccurrences = new Map<string, number>()
+  return entries.map((entry) => {
+    const occurrence = keyOccurrences.get(entry.id) ?? 0
+    keyOccurrences.set(entry.id, occurrence + 1)
+    return {
+      elapsed: formatTime(entry.ts, baseTs),
+      entry,
+      renderKey: occurrence === 0 ? entry.id : `${entry.id}:${occurrence}`
+    }
+  })
+}
+
+function renderConnectionLogEntry({ item }: ListRenderItemInfo<RenderedConnectionLogEntry>) {
+  return (
+    <View style={styles.row}>
+      <Text style={styles.timestamp}>{item.elapsed}</Text>
+      <Text style={[styles.glyph, { color: LEVEL_COLOR[item.entry.level] }]}>
+        {LEVEL_GLYPH[item.entry.level]}
+      </Text>
+      <View style={styles.rowText}>
+        <Text style={[styles.message, { color: LEVEL_COLOR[item.entry.level] }]}>
+          {item.entry.message}
+        </Text>
+        {item.entry.detail && (
+          <Text style={styles.detail} numberOfLines={2}>
+            {item.entry.detail}
+          </Text>
+        )}
+      </View>
+    </View>
+  )
+}
+
+export function ConnectionLog({ entries, title, fillAvailableHeight = false }: Props) {
+  const scrollRef = useRef<FlatList<RenderedConnectionLogEntry> | null>(null)
+  const renderedEntries = useMemo(() => buildRenderedEntries(entries), [entries])
 
   if (entries.length === 0) {
     return null
   }
-  const baseTs = entries[0]!.ts
-
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        fillAvailableHeight ? styles.fillContainer : styles.boundedContainer
+      ]}
+    >
       {title && <Text style={styles.title}>{title}</Text>}
-      <ScrollView
+      <FlatList
         ref={scrollRef}
-        style={styles.scroll}
+        data={renderedEntries}
+        renderItem={renderConnectionLogEntry}
+        keyExtractor={(item) => item.renderKey}
+        style={fillAvailableHeight ? styles.fillScroll : styles.boundedScroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
-      >
-        {entries.map((entry) => (
-          <View key={entry.id} style={styles.row}>
-            <Text style={styles.timestamp}>{formatTime(entry.ts, baseTs)}</Text>
-            <Text style={[styles.glyph, { color: LEVEL_COLOR[entry.level] }]}>
-              {LEVEL_GLYPH[entry.level]}
-            </Text>
-            <View style={styles.rowText}>
-              <Text style={[styles.message, { color: LEVEL_COLOR[entry.level] }]}>
-                {entry.message}
-              </Text>
-              {entry.detail && (
-                <Text style={styles.detail} numberOfLines={2}>
-                  {entry.detail}
-                </Text>
-              )}
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+      />
     </View>
   )
 }
@@ -81,13 +111,18 @@ export function ConnectionLog({ entries, title }: Props) {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    maxHeight: 240,
     backgroundColor: colors.bgPanel,
     borderRadius: radii.card,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderSubtle,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md
+  },
+  boundedContainer: {
+    maxHeight: 240
+  },
+  fillContainer: {
+    flex: 1
   },
   title: {
     fontSize: typography.metaSize,
@@ -97,8 +132,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: spacing.xs
   },
-  scroll: {
+  boundedScroll: {
     maxHeight: 200
+  },
+  fillScroll: {
+    flex: 1
   },
   scrollContent: {
     gap: 6

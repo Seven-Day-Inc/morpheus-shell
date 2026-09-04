@@ -6,7 +6,7 @@ import {
 
 function editorScript(): string {
   const html = buildMobileRichMarkdownEditorHtml()
-  const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1]
+  const script = html.match(/<script>([\s\S]*)<\/script>/i)?.[1]
   expect(script).toBeTruthy()
   return script ?? ''
 }
@@ -58,8 +58,8 @@ function runtimeMarkdownToHtml(markdown: string, editable: boolean): string {
     extractFunctionSource(script, 'listKind'),
     extractFunctionSource(script, 'parseListTree'),
     extractFunctionSource(script, 'renderListItems'),
-    extractFunctionSource(script, 'markdownToHtml'),
-    'return markdownToHtml(arguments[0]);'
+    extractFunctionSource(script, 'sanitizeMarkdownHtml'),
+    'return sanitizeMarkdownHtml(arguments[0]);'
   ].join('\n')
   return new Function(sources)(markdown, editable) as string
 }

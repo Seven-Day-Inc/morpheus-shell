@@ -6,6 +6,8 @@ import { resolveSplitCwd, type PaneCwdMap } from './resolve-split-cwd'
 import { recordCreatedTerminalPaneSplit } from './terminal-pane-split-completion'
 
 export function splitTerminalPaneWithInheritedCwd(args: {
+  worktreeId: string
+  tabId: string
   manager: PaneManager
   getManager?: () => PaneManager | null
   paneTransports: Map<number, PtyTransport>
@@ -15,8 +17,19 @@ export function splitTerminalPaneWithInheritedCwd(args: {
   direction: 'vertical' | 'horizontal'
   source: TerminalPaneSplitSource
 }): void {
-  const ptyId = args.paneTransports.get(args.pane.id)?.getPtyId() ?? null
-  if (splitWebRuntimeTerminal(ptyId, args.direction, args.source)) {
+  const ptyId =
+    args.paneTransports.get(args.pane.id)?.getPtyId() ??
+    // Why: a reattaching remote transport briefly has no handle, while the
+    // pane's reconciled binding remains authoritative for host operations.
+    args.pane.container?.dataset?.ptyId ??
+    null
+  if (
+    splitWebRuntimeTerminal(ptyId, args.direction, args.source, {
+      worktreeId: args.worktreeId,
+      tabId: args.tabId,
+      leafId: args.pane.leafId
+    })
+  ) {
     return
   }
   const cached = args.paneCwdMap.get(args.pane.id)

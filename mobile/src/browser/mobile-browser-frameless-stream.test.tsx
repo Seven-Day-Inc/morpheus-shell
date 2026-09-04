@@ -26,6 +26,37 @@ vi.mock('react-native', () => ({
   View: 'View'
 }))
 
+vi.mock('expo-image', () => ({ Image: 'Image' }))
+
+vi.mock('react-native-gesture-handler', () => {
+  const chain: Record<string, unknown> = {}
+  for (const method of [
+    'maxDistance',
+    'runOnJS',
+    'onEnd',
+    'minDuration',
+    'onStart',
+    'minDistance',
+    'maxPointers',
+    'onBegin',
+    'onUpdate',
+    'onFinalize'
+  ]) {
+    chain[method] = () => chain
+  }
+  return {
+    Gesture: {
+      Tap: () => chain,
+      LongPress: () => chain,
+      Pan: () => chain,
+      Pinch: () => chain,
+      Exclusive: () => chain,
+      Simultaneous: () => chain
+    },
+    GestureDetector: 'GestureDetector'
+  }
+})
+
 // Why: covers icons reached transitively too (the view-mode switch), not just the pane's own
 // imports — vitest throws on the first unmocked export rather than rendering without it.
 vi.mock('lucide-react-native', () => ({
