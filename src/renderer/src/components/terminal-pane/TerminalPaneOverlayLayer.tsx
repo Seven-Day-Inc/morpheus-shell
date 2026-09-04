@@ -130,9 +130,15 @@ const TerminalPaneOverlayLayer = memo(function TerminalPaneOverlayLayer({
   return (
     <>
       {terminalTabs
-        .filter((terminalTab) =>
-          shouldMountBackgroundWorktreeTab(backgroundMountTabIds, terminalTab.id)
-        )
+        .filter((terminalTab) => {
+          const assignment = assignments.get(terminalTab.id)
+          // Why: a selected terminal is a visible consumer, never merely a
+          // background wake target.
+          return (
+            (isWorktreeActive && assignment?.isActiveInGroup === true) ||
+            shouldMountBackgroundWorktreeTab(backgroundMountTabIds, terminalTab.id)
+          )
+        })
         .map((terminalTab) => {
           const assignment = assignments.get(terminalTab.id)
           const isVisible = Boolean(isWorktreeActive && assignment?.isActiveInGroup)

@@ -7,6 +7,7 @@
  */
 import { isTerminalLeafId } from '../../../../shared/stable-pane-id'
 import { useAppStore } from '@/store'
+import { isRemoteRuntimePtyId } from '@/runtime/runtime-terminal-inspection'
 import { isRemoteExecutionHostPtyId } from './remote-execution-host-pty'
 import { discardPreHandlerPtyState } from './pty-pre-handler-buffer'
 import { terminalProviderHasAuthoritativeSnapshot } from '../terminal/terminal-provider-snapshot-capability'
@@ -47,10 +48,18 @@ export {
   resolveParkedTerminalPaneCandidates
 } from './terminal-parked-watcher-reconciliation'
 export type { ParkableTerminalTabModel } from './terminal-parked-watcher-reconciliation'
-export type ParkedTerminalPtyEligibility = (ptyId: string) => boolean
+export type ParkedTerminalPtyEligibility = (
+  ptyId: string,
+  restorePolicy: TerminalParkRestorePolicy
+) => boolean
 
-const allowOrdinaryParkRestore = (ptyId: string): boolean =>
-  isRemoteExecutionHostPtyId(ptyId) || terminalProviderHasAuthoritativeSnapshot(ptyId)
+const allowOrdinaryParkRestore = (
+  ptyId: string,
+  restorePolicy: TerminalParkRestorePolicy
+): boolean =>
+  isRemoteExecutionHostPtyId(ptyId) ||
+  terminalProviderHasAuthoritativeSnapshot(ptyId) ||
+  isParkRestorableTerminalPty(ptyId, '', restorePolicy)
 
 // Why: fact-mode watchers work for any pty whose bytes transit local main —
 // SSH included — so watcher coverage follows the park-restore policy, not the
@@ -91,8 +100,9 @@ export function canWatcherCoverParkedTerminalTab(
       (pane) =>
         pane.ptyId !== null &&
         isTerminalLeafId(pane.leafId) &&
-        isParkRestorableTerminalPty(pane.ptyId, worktreeId, restorePolicy) &&
-        isPtyEligible(pane.ptyId)
+        (isRemoteRuntimePtyId(pane.ptyId) ||
+          isParkRestorableTerminalPty(pane.ptyId, worktreeId, restorePolicy)) &&
+        isPtyEligible(pane.ptyId, restorePolicy)
     )
   )
 }

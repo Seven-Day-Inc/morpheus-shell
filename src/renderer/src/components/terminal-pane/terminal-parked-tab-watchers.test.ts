@@ -765,7 +765,10 @@ describe('terminal-parked-tab-watchers', () => {
           providerCanSnapshotWithoutRenderer
         )
       ).toBe(false)
-      expect(providerCanSnapshotWithoutRenderer).toHaveBeenCalledWith(PTY_ID)
+      expect(providerCanSnapshotWithoutRenderer).toHaveBeenCalledWith(
+        PTY_ID,
+        expect.objectContaining({ sshParkingEnabled: true })
+      )
     })
 
     it('rejects ordinary parking for a preserved daemon with a lossy snapshot', async () => {
@@ -809,6 +812,46 @@ describe('terminal-parked-tab-watchers', () => {
       expect(canWatcherCoverParkedTerminalTab(WORKTREE_ID, { id: TAB_ID, ptyId: PTY_ID })).toBe(
         true
       )
+    })
+
+    it('accepts a paired runtime PTY when its host advertises parked-stream support', () => {
+      mockStoreState.runtimeStatusByEnvironmentId.set('env-1', {
+        status: { capabilities: ['terminal.paired-parking.v1'] },
+        checkedAt: Date.now()
+      })
+      capturePanes([
+        {
+          ptyId: 'remote:env-1@@terminal-1',
+          paneId: 1,
+          leafId: LEAF_ID,
+          drivesTabTitle: true
+        }
+      ])
+
+      expect(
+        canWatcherCoverParkedTerminalTab(WORKTREE_ID, {
+          id: TAB_ID,
+          ptyId: 'remote:env-1@@terminal-1'
+        })
+      ).toBe(true)
+    })
+
+    it('accepts a remote host PTY without a client capability cache', () => {
+      capturePanes([
+        {
+          ptyId: 'remote:host-1@@terminal-1',
+          paneId: 1,
+          leafId: LEAF_ID,
+          drivesTabTitle: true
+        }
+      ])
+
+      expect(
+        canWatcherCoverParkedTerminalTab(WORKTREE_ID, {
+          id: TAB_ID,
+          ptyId: 'remote:host-1@@terminal-1'
+        })
+      ).toBe(true)
     })
 
     it('rejects an SSH PTY when terminalSshViewParking is off', () => {

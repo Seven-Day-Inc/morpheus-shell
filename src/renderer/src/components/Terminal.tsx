@@ -2665,11 +2665,13 @@ function Terminal(): React.JSX.Element | null {
                     aria-hidden={!isVisible}
                   >
                     {(tabsByWorktree[workspace.id] ?? [])
-                      .filter((tab) =>
-                        shouldMountBackgroundWorktreeTab(
-                          backgroundMountTabIdsByWorktreeRef.current.get(workspace.id) ?? null,
-                          tab.id
-                        )
+                      .filter(
+                        (tab) =>
+                          (isVisible && tab.id === activeTabId && activeTabType === 'terminal') ||
+                          shouldMountBackgroundWorktreeTab(
+                            backgroundMountTabIdsByWorktreeRef.current.get(workspace.id) ?? null,
+                            tab.id
+                          )
                       )
                       .map((tab) => {
                         const activityTerminalPortal = findActivityTerminalPortal(

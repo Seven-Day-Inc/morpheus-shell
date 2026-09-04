@@ -26,6 +26,7 @@ const harness = vi.hoisted(() => ({
   syncCalls: 0,
   slotRenders: 0,
   slotMounts: 0,
+  renderedSlotTabIds: new Set<string>(),
   observedParkedCounts: new Set<number>(),
   watcherEntries: new Set<string>()
 }))
@@ -77,6 +78,7 @@ vi.mock('./TerminalOverlaySlot', async () => {
   return {
     TerminalOverlaySlot: ({ terminalTabId }: { terminalTabId: string }) => {
       harness.slotRenders += 1
+      harness.renderedSlotTabIds.add(terminalTabId)
       useEffect(() => {
         harness.slotMounts += 1
         if (harness.slotMounts > 400) {
@@ -149,7 +151,10 @@ const LEAF_IDS: Record<string, string> = {
 
 const harnessStore = useAppStore as unknown as {
   setState: (partial: Record<string, unknown>) => void
-  getState: () => { tabsByWorktree: Record<string, TerminalTab[]> }
+  getState: () => {
+    tabsByWorktree: Record<string, TerminalTab[]>
+    groupsByWorktree: Record<string, TabGroup[]>
+  }
 }
 
 function ptyIdFor(tabId: string): string {
@@ -206,6 +211,7 @@ describe('force-park exemption flips under capability changes', () => {
     harness.syncCalls = 0
     harness.slotRenders = 0
     harness.slotMounts = 0
+    harness.renderedSlotTabIds.clear()
     harness.observedParkedCounts.clear()
     harness.watcherEntries.clear()
     harnessStore.setState({
@@ -298,5 +304,32 @@ describe('force-park exemption flips under capability changes', () => {
     expect(harness.observedParkedCounts.has(0)).toBe(true)
     expect(harness.observedParkedCounts.has(TAB_IDS.length)).toBe(true)
     expect(harness.slotMounts).toBeGreaterThan(0)
+  })
+
+  it('mounts a visible paired tab outside the targeted background set', () => {
+    const activeTab = `unified-${TAB_IDS[1]}`
+    harnessStore.setState({
+      groupsByWorktree: {
+        [harness.worktreeId]: [
+          {
+            ...harnessStore.getState().groupsByWorktree[harness.worktreeId][0],
+            activeTabId: activeTab
+          }
+        ]
+      }
+    })
+    root = createRoot(container)
+    act(() => {
+      root!.render(
+        <TerminalPaneOverlayLayer
+          worktreeId={harness.worktreeId}
+          worktreePath="targeted-visible"
+          isWorktreeActive
+          backgroundMountTabIds={new Set([TAB_IDS[0]])}
+        />
+      )
+    })
+
+    expect(harness.renderedSlotTabIds).toContain(TAB_IDS[1])
   })
 })

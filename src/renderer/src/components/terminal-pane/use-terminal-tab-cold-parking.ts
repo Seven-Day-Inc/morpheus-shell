@@ -322,6 +322,7 @@ export function useTerminalTabColdParking(args: {
       // restrictions do not enter this set or add a new eager watcher burst.
       if (
         activationDeferredMountTabIds?.has(terminalTab.id) &&
+        !isVisible &&
         !hasActivityTerminalPortal &&
         canWatcherCoverParkedTerminalTab(worktreeId, terminalTab)
       ) {

@@ -197,6 +197,24 @@ describe('useTerminalTabColdParking measure-clock contract', () => {
     expect(result.current).toEqual(new Set(['tab-1']))
   })
 
+  it('never keeps an active deferred terminal tab parked', () => {
+    const assignments = new Map([
+      ['tab-1', { groupId: 'group-1', isActiveInGroup: true }],
+      ['tab-2', { groupId: 'group-1', isActiveInGroup: false }]
+    ])
+    const { result } = renderHook(() =>
+      useTerminalTabColdParking({
+        ...hookArgs(false),
+        assignments,
+        isWorktreeActive: true,
+        activeTerminalTabId: 'tab-1',
+        activationDeferredMountTabIds: new Set(['tab-1'])
+      })
+    )
+
+    expect(result.current).not.toContain('tab-1')
+  })
+
   it('parks paired-runtime tabs only when their exact host advertises restore', () => {
     const environmentId = 'paired-env'
     const remoteArgs = {

@@ -40,6 +40,7 @@ import {
   toWebTerminalSurfaceTabId
 } from '../../src/shared/terminal-surface-id'
 import { expect, test } from './helpers/orca-app'
+import { nodeTerminalCommand } from './terminal-node-command'
 import {
   createRuntimeDesktopPairingOffer,
   launchPairedElectronClient
@@ -81,15 +82,8 @@ test.afterAll(() => {
 // Why: the HOST must park quickly too, so its launch env carries the override.
 test.use({ orcaAppExtraEnv: { ORCA_E2E_TERMINAL_PARKING_DELAY_MS: String(PARK_DELAY_MS) } })
 
-function shellQuote(value: string): string {
-  return `'${value.replaceAll("'", `'\\''`)}'`
-}
-
 function fixtureCommand(sinkPath: string): string {
-  const command = [process.execPath, fixturePath, sinkPath]
-  return process.platform === 'win32'
-    ? command.map((value) => `"${value.replaceAll('"', '""')}"`).join(' ')
-    : command.map(shellQuote).join(' ')
+  return nodeTerminalCommand([fixturePath, sinkPath])
 }
 
 function readSink(sinkPath: string): string {
