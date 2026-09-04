@@ -67,6 +67,36 @@ describe('splitTerminalPaneWithInheritedCwd', () => {
     }
   )
 
+  it('delegates a reconnecting remote pane from its reconciled PTY binding', () => {
+    const splitPane = vi.fn()
+    const transport = { getPtyId: () => null } as PtyTransport
+    mocks.splitWebRuntimeTerminal.mockReturnValue(true)
+
+    splitTerminalPaneWithInheritedCwd({
+      worktreeId: 'worktree-1',
+      tabId: 'tab-1',
+      manager: makeManager(splitPane),
+      paneTransports: new Map([[1, transport]]),
+      paneCwdMap: new Map(),
+      fallbackCwd: '/fallback',
+      pane: {
+        id: 1,
+        leafId: 'leaf-1',
+        container: { dataset: { ptyId: 'remote:web-env-1@@terminal-1' } }
+      } as unknown as ManagedPane,
+      direction: 'vertical',
+      source: 'keyboard'
+    })
+
+    expect(mocks.splitWebRuntimeTerminal).toHaveBeenCalledWith(
+      'remote:web-env-1@@terminal-1',
+      'vertical',
+      'keyboard',
+      { worktreeId: 'worktree-1', tabId: 'tab-1', leafId: 'leaf-1' }
+    )
+    expect(splitPane).not.toHaveBeenCalled()
+  })
+
   it('keeps the existing local split-and-focus path unchanged', () => {
     const createdPane = { id: 2 }
     const splitPane = vi.fn(() => createdPane)

@@ -110,7 +110,17 @@ function matchesWebRuntimeSplitFocusTarget(
     const currentLeafId = currentTabId
       ? (state.terminalLayoutsByTabId?.[currentTabId]?.activeLeafId ?? null)
       : null
-    return currentLeafId === target.expectedCurrentLocalLeafId
+    if (currentLeafId === target.expectedCurrentLocalLeafId) {
+      return true
+    }
+    // The host snapshot can claim the new split leaf before the explicit focus
+    // delivery resumes; keep that same mirrored surface eligible for the handoff.
+    return Boolean(
+      currentTabId &&
+        newLeafId &&
+        toHostSessionTabId(currentTabId) === hostTabId &&
+        currentLeafId === newLeafId
+    )
   }
   return Boolean(
     currentTabId &&
@@ -147,7 +157,10 @@ export async function focusSplitWebRuntimeTerminalPane(
   )
   await refreshWebRuntimeSessionTabsSnapshot(owner.environmentId, target.worktreeId, {
     expectedEnvironmentPairingRevision: owner.pairingRevision,
-    acceptCurrentSnapshot: true
+    acceptCurrentSnapshot: true,
+    // Why: the split response commits a new host PTY; never join an inventory
+    // request that started before that commitment.
+    afterCurrentInFlight: true
   })
   if (
     !isLatestWebRuntimeSplitFocusRequest(request) ||
