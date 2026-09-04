@@ -31,6 +31,7 @@ describe('runtime and direct SSH wake isolation', () => {
   })
 
   beforeEach(() => {
+    vi.useFakeTimers()
     retryConnectionsNow.mockClear()
     retryAllRemoteRuntimePtyRecoveriesNowMock.mockClear()
     onSystemResumed.mockClear()
@@ -42,10 +43,11 @@ describe('runtime and direct SSH wake isolation', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     delete (window as unknown as { api?: unknown }).api
   })
 
-  it('advances both runtime backoffs and one exact direct wake without rebumping a healthy pane', () => {
+  it('advances both runtime backoffs and one exact direct wake without rebumping a healthy pane', async () => {
     const currentAuthority = authority()
     const directWorktreeId = 'repo-direct::/work/direct'
     const runtimeWorktreeId = 'repo-runtime::/work/runtime'
@@ -163,6 +165,7 @@ describe('runtime and direct SSH wake isolation', () => {
     const { unmount } = renderHook(() => useRemoteRuntimeRecoveryTriggers())
 
     window.dispatchEvent(new Event('online'))
+    await vi.runAllTimersAsync()
 
     expect(retryConnectionsNow).toHaveBeenCalledTimes(1)
     expect(retryAllRemoteRuntimePtyRecoveriesNowMock).toHaveBeenCalledTimes(1)

@@ -23,6 +23,7 @@ describe('useRemoteRuntimeRecoveryTriggers', () => {
   const retryConnectionsNow = vi.fn(() => Promise.resolve())
 
   beforeEach(() => {
+    vi.useFakeTimers()
     systemResumedCallback = null
     unsubscribeSystemResumed.mockClear()
     onSystemResumed.mockClear()
@@ -35,10 +36,11 @@ describe('useRemoteRuntimeRecoveryTriggers', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     delete (window as unknown as { api?: unknown }).api
   })
 
-  it('advances shared-control and pane backoffs once per online, resume, or host reconnect trigger', () => {
+  it('advances shared-control and pane backoffs after the triggering renderer turn', async () => {
     const { rerender, unmount } = renderHook(() => useRemoteRuntimeRecoveryTriggers())
     rerender()
 
@@ -46,6 +48,9 @@ describe('useRemoteRuntimeRecoveryTriggers', () => {
     systemResumedCallback?.()
     window.dispatchEvent(new Event(RUNTIME_ENVIRONMENT_RECONNECTED_EVENT))
 
+    expect(retryConnectionsNow).not.toHaveBeenCalled()
+    expect(retryAllRemoteRuntimePtyRecoveriesNowMock).not.toHaveBeenCalled()
+    await vi.runAllTimersAsync()
     expect(retryConnectionsNow).toHaveBeenCalledTimes(3)
     expect(retryAllRemoteRuntimePtyRecoveriesNowMock).toHaveBeenCalledTimes(3)
     expect(onSystemResumed).toHaveBeenCalledTimes(1)
