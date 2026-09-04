@@ -8,6 +8,7 @@ import {
   toWebTerminalSurfaceTabId
 } from '../../src/shared/terminal-surface-id'
 import { expect, test } from './helpers/orca-app'
+import { nodeTerminalCommand } from './terminal-node-command'
 import { TEST_REPO_PATH_FILE } from './global-setup'
 import {
   createRuntimeDesktopPairingOffer,
@@ -47,15 +48,8 @@ test.afterAll(() => {
   rmSync(scratch, { recursive: true, force: true })
 })
 
-function shellQuote(value: string): string {
-  return `'${value.replaceAll("'", `'\\''`)}'`
-}
-
 function fixtureCommand(sinkPath: string): string {
-  const command = [process.execPath, fixturePath, sinkPath]
-  return process.platform === 'win32'
-    ? command.map((value) => `"${value.replaceAll('"', '""')}"`).join(' ')
-    : command.map(shellQuote).join(' ')
+  return nodeTerminalCommand([fixturePath, sinkPath])
 }
 
 function seededRepoPathOrSkip(): string {
@@ -282,6 +276,38 @@ async function expectTerminalInteractive(
     .toContain(`LIVE:${marker}`)
 }
 
+async function createInactiveHostWorktree(page: Page, targetWorktreeId: string): Promise<void> {
+  const created = await page.evaluate(
+    async ({ targetWorktreeId, worktreeName }) => {
+      const state = window.__store?.getState()
+      const target = state?.allWorktrees().find((worktree) => worktree.id === targetWorktreeId)
+      if (!state || !target) {
+        throw new Error('Host target worktree is unavailable')
+      }
+      const result = await state.createWorktree(target.repoId, worktreeName)
+      await state.fetchWorktrees(target.repoId)
+      state.setActiveWorktree(targetWorktreeId)
+      return result.worktree.id
+    },
+    {
+      targetWorktreeId,
+      worktreeName: `e2e-host-restart-inactive-${Date.now()}`
+    }
+  )
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          (worktreeId) =>
+            window.__store?.getState().allWorktrees().some((worktree) => worktree.id === worktreeId) ??
+            false,
+          created
+        ),
+      { timeout: 30_000, message: 'Host did not retain the inactive restart worktree' }
+    )
+    .toBe(true)
+}
+
 async function moveHostAwayFromWorktree(page: Page, targetWorktreeId: string): Promise<string> {
   const alternateWorktreeId = await page.evaluate((targetId) => {
     const state = window.__store?.getState()
@@ -320,6 +346,7 @@ test('foregrounds a preserved daemon PTY after the paired host relaunches', asyn
     const first = await session.launch()
     firstHost = first.app
     const worktreeId = await attachRepoAndOpenTerminal(first.page, repoPath)
+    await createInactiveHostWorktree(first.page, worktreeId)
     const daemonPid = readDaemonPid(session.userDataDir)
     client = await launchPairedElectronClient(
       await createRuntimeDesktopPairingOffer(first.page),
